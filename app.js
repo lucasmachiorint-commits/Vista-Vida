@@ -130,9 +130,30 @@
 
   function loadState() {
     try {
+      // Clear legacy storage keys
+      localStorage.removeItem('chacara_recanto_aguas_db_v1');
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        // Auto-heal if previously cached with Atibaia or missing mapsUrl
+        if (parsed.property && (
+            !parsed.property.mapsUrl ||
+            (parsed.property.address && parsed.property.address.includes('Atibaia')) ||
+            (parsed.property.shortAddress && parsed.property.shortAddress.includes('Atibaia'))
+        )) {
+          parsed.property.name = DEFAULT_DATA.property.name;
+          parsed.property.title = DEFAULT_DATA.property.title;
+          parsed.property.address = DEFAULT_DATA.property.address;
+          parsed.property.shortAddress = DEFAULT_DATA.property.shortAddress;
+          parsed.property.lat = DEFAULT_DATA.property.lat;
+          parsed.property.lng = DEFAULT_DATA.property.lng;
+          parsed.property.mapsUrl = DEFAULT_DATA.property.mapsUrl;
+          parsed.property.roadInfo = DEFAULT_DATA.property.roadInfo;
+          parsed.nearbyPoints = DEFAULT_DATA.nearbyPoints;
+          parsed.recommendations = DEFAULT_DATA.recommendations;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+        }
+        return parsed;
       }
     } catch (e) {
       console.warn("Erro ao carregar dados do LocalStorage, usando defaults:", e);
@@ -236,6 +257,19 @@
     document.getElementById('display-full-address').textContent = state.property.address;
     document.getElementById('property-description').textContent = state.property.description;
     document.getElementById('access-road-info').textContent = state.property.roadInfo;
+
+    // Google Maps Link & Embedded Iframe Dynamic Update
+    const mapsLinkBtn = document.getElementById('btn-google-maps-link');
+    if (mapsLinkBtn) {
+      mapsLinkBtn.href = state.property.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(state.property.address)}`;
+    }
+
+    const mapIframe = document.getElementById('google-maps-iframe');
+    if (mapIframe) {
+      const lat = state.property.lat || -22.6929619;
+      const lng = state.property.lng || -46.5522407;
+      mapIframe.src = `https://maps.google.com/maps?q=${lat},${lng}&hl=pt&z=16&output=embed`;
+    }
 
     document.getElementById('spec-sleep').textContent = `Dormem até ${state.property.sleeps}`;
     document.getElementById('spec-event').textContent = `Festas até ${state.property.events}`;
@@ -534,21 +568,26 @@
   let mapInstance = null;
 
   function initMap() {
+    const lat = state.property.lat || -22.6929619;
+    const lng = state.property.lng || -46.5522407;
+
+    const mapIframe = document.getElementById('google-maps-iframe');
+    if (mapIframe) {
+      mapIframe.src = `https://maps.google.com/maps?q=${lat},${lng}&hl=pt&z=16&output=embed`;
+    }
+
     const mapEl = document.getElementById('map-container');
     if (!mapEl || mapInstance) return;
 
     try {
-      const lat = state.property.lat || -23.1172;
-      const lng = state.property.lng || -46.5564;
-
-      mapInstance = L.map('map-container').setView([lat, lng], 13);
+      mapInstance = L.map('map-container').setView([lat, lng], 16);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
       }).addTo(mapInstance);
 
       // Property Marker
       L.marker([lat, lng]).addTo(mapInstance)
-        .bindPopup(`<b>${state.property.name}</b><br>${state.property.shortAddress}`)
+        .bindPopup(`<b>${state.property.name}</b><br>${state.property.address}<br><a href="${state.property.mapsUrl || '#'}" target="_blank" style="color:#008a05;font-weight:bold;">Abrir no Google Maps ↗</a>`)
         .openPopup();
     } catch (e) {
       console.warn("Erro ao carregar Leaflet Map:", e);
@@ -760,10 +799,14 @@
   };
 
   function renderAdminLocation() {
-    document.getElementById('admin-loc-address').value = state.property.address;
-    document.getElementById('admin-loc-lat').value = state.property.lat;
-    document.getElementById('admin-loc-lng').value = state.property.lng;
-    document.getElementById('admin-loc-road').value = state.property.roadInfo;
+    document.getElementById('admin-loc-address').value = state.property.address || '';
+    const shortEl = document.getElementById('admin-loc-short');
+    if (shortEl) shortEl.value = state.property.shortAddress || 'Socorro, São Paulo - Brasil';
+    const mapsEl = document.getElementById('admin-loc-maps');
+    if (mapsEl) mapsEl.value = state.property.mapsUrl || 'https://maps.app.goo.gl/qX321VcuqdVGxf248';
+    document.getElementById('admin-loc-lat').value = state.property.lat || -22.6929619;
+    document.getElementById('admin-loc-lng').value = state.property.lng || -46.5522407;
+    document.getElementById('admin-loc-road').value = state.property.roadInfo || '';
   }
 
   function renderAdminRecommendations() {
@@ -1231,16 +1274,75 @@
   document.getElementById('form-admin-location').addEventListener('submit', function(e) {
     e.preventDefault();
     state.property.address = document.getElementById('admin-loc-address').value.trim();
-    state.property.lat = parseFloat(document.getElementById('admin-loc-lat').value);
-    state.property.lng = parseFloat(document.getElementById('admin-loc-lng').value);
+    
+    const shortEl = document.getElementById('admin-loc-short');
+    if (shortEl && shortEl.value.trim()) {
+      state.property.shortAddress = shortEl.value.trim();
+    }
+    
+    const mapsEl = document.getElementById('admin-loc-maps');
+    let mapsUrl = mapsEl ? mapsEl.value.trim() : '';
+    if (mapsUrl) {
+      state.property.mapsUrl = mapsUrl;
+      
+      // Auto-extract coords from Google Maps URL if present:
+      const atMatch = mapsUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+      const bangMatch = mapsUrl.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+      const qMatch = mapsUrl.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+      
+      if (bangMatch) {
+        state.property.lat = parseFloat(bangMatch[1]);
+        state.property.lng = parseFloat(bangMatch[2]);
+        document.getElementById('admin-loc-lat').value = state.property.lat;
+        document.getElementById('admin-loc-lng').value = state.property.lng;
+      } else if (atMatch) {
+        state.property.lat = parseFloat(atMatch[1]);
+        state.property.lng = parseFloat(atMatch[2]);
+        document.getElementById('admin-loc-lat').value = state.property.lat;
+        document.getElementById('admin-loc-lng').value = state.property.lng;
+      } else if (qMatch) {
+        state.property.lat = parseFloat(qMatch[1]);
+        state.property.lng = parseFloat(qMatch[2]);
+        document.getElementById('admin-loc-lat').value = state.property.lat;
+        document.getElementById('admin-loc-lng').value = state.property.lng;
+      }
+    }
+
+    const latVal = parseFloat(document.getElementById('admin-loc-lat').value);
+    const lngVal = parseFloat(document.getElementById('admin-loc-lng').value);
+    if (!isNaN(latVal)) state.property.lat = latVal;
+    if (!isNaN(lngVal)) state.property.lng = lngVal;
+
     state.property.roadInfo = document.getElementById('admin-loc-road').value.trim();
 
     saveState(state);
-    alert("Localização e instruções da estrada salvas com sucesso!");
+    renderPublicView();
+    alert("Localização, link do Google Maps e mapa atualizados com sucesso!");
     if (mapInstance) {
-      mapInstance.setView([state.property.lat, state.property.lng], 13);
+      mapInstance.setView([state.property.lat, state.property.lng], 16);
     }
   });
+
+  // Auto-detect coordinates as soon as user pastes Google Maps link in input
+  const mapsInputEl = document.getElementById('admin-loc-maps');
+  if (mapsInputEl) {
+    mapsInputEl.addEventListener('input', function() {
+      const val = this.value;
+      const atMatch = val.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+      const bangMatch = val.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+      const qMatch = val.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (bangMatch) {
+        document.getElementById('admin-loc-lat').value = bangMatch[1];
+        document.getElementById('admin-loc-lng').value = bangMatch[2];
+      } else if (atMatch) {
+        document.getElementById('admin-loc-lat').value = atMatch[1];
+        document.getElementById('admin-loc-lng').value = atMatch[2];
+      } else if (qMatch) {
+        document.getElementById('admin-loc-lat').value = qMatch[1];
+        document.getElementById('admin-loc-lng').value = qMatch[2];
+      }
+    });
+  }
 
   // Admin: Add Recommendation
   document.getElementById('form-add-rec').addEventListener('submit', function(e) {

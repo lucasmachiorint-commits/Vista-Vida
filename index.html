@@ -163,7 +163,7 @@
           <section class="section-divider" id="localizacao">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
               <h2>Localização & Acesso</h2>
-              <a href="https://maps.app.goo.gl/qX321VcuqdVGxf248" target="_blank" rel="noopener noreferrer" class="btn-meta" style="color: var(--forest-green); font-weight: 600; border: 1px solid var(--forest-green);">
+              <a id="btn-google-maps-link" href="https://maps.app.goo.gl/qX321VcuqdVGxf248" target="_blank" rel="noopener noreferrer" class="btn-meta" style="color: var(--forest-green); font-weight: 600; border: 1px solid var(--forest-green); background: #f0fdf4;">
                 📍 Abrir no Google Maps / GPS ↗
               </a>
             </div>
@@ -171,8 +171,10 @@
               Estrada José Maria Tonelli, 1720, Socorro - SP, CEP 13960-000
             </p>
             
-            <!-- Map Container -->
-            <div id="map-container" style="height: 350px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--gray-200); margin-bottom: 1.5rem; z-index: 1;"></div>
+            <!-- Map Container (Google Maps Embed Exato) -->
+            <div style="position: relative; height: 380px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--gray-300); margin-bottom: 1.5rem; box-shadow: var(--shadow-sm);">
+              <iframe id="google-maps-iframe" src="https://maps.google.com/maps?q=-22.6929619,-46.5522407&hl=pt&z=16&output=embed" style="width: 100%; height: 100%; border: 0;" loading="lazy" allowfullscreen></iframe>
+            </div>
             
             <!-- Access instructions card -->
             <div style="background: var(--gray-100); padding: 1.25rem; border-radius: var(--radius-md); border-left: 4px solid var(--forest-green);">
@@ -689,8 +691,21 @@
           <form id="form-admin-location">
             <div class="form-group">
               <label class="form-label">Endereço Completo</label>
-              <input type="text" class="form-input" id="admin-loc-address" required>
+              <input type="text" class="form-input" id="admin-loc-address" required placeholder="Ex: Estrada José Maria Tonelli, 1720, Socorro - SP, CEP 13960-000">
             </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-group">
+                <label class="form-label">Cidade / Estado (Exibição no Topo)</label>
+                <input type="text" class="form-input" id="admin-loc-short" required placeholder="Ex: Socorro, São Paulo - Brasil">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Link do Google Maps / GPS (URL curta ou completa)</label>
+                <input type="url" class="form-input" id="admin-loc-maps" placeholder="https://maps.app.goo.gl/qX321VcuqdVGxf248">
+              </div>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--forest-green); margin-bottom: 1rem;">
+              💡 <em>Dica: Ao colar o link do Google Maps, o sistema atualiza automaticamente o botão do site e a localização exata no mapa!</em>
+            </p>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
               <div class="form-group">
                 <label class="form-label">Latitude</label>
