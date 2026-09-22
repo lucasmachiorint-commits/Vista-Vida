@@ -1,6 +1,6 @@
-# Chácara Recanto das Águas — Site de Locação por Temporada
+# Chácara Vista Vida — Site de Locação por Temporada
 
-Aplicação web inspirada no design e experiência do **Airbnb** para locação de chácara por temporada, com fluxo de solicitação e aprovação de reservas, CMS administrativo completo, gerador de contrato em PDF para assinatura no **GOV.BR**, e guia local do entorno.
+Aplicação web inspirada no design e experiência do **Airbnb** para locação da **Chácara Vista Vida** por temporada, com fluxo de solicitação e aprovação de reservas, CMS administrativo completo, gerador de contrato em PDF para assinatura no **GOV.BR**, e guia local do entorno.
 
 ---
 
@@ -21,16 +21,11 @@ O servidor local iniciará na porta 8080. Acesse no navegador:
 
 O projeto está configurado para deploy automático no GitHub Pages através do workflow em `.github/workflows/deploy.yml`.
 
-1. Crie um repositório no seu GitHub (ex: `chacara-locacao`).
-2. Adicione o remote e faça o push:
-   ```bash
-   git remote add origin https://github.com/lucasmachiorint-commits/chacara-locacao.git
-   git branch -M main
-   git push -u origin main
-   ```
-3. No GitHub, acesse **Settings > Pages** e certifique-se de que a fonte esteja definida como **GitHub Actions** (ou `main` branch).
-4. Sua URL gratuita com SSL estará disponível em:
-   👉 **`https://lucasmachiorint-commits.github.io/chacara-locacao/`**
+Repositório configurado:
+👉 **`https://github.com/lucasmachiorint-commits/Vista-Vida.git`**
+
+Sua URL pública no GitHub Pages:
+👉 **`https://lucasmachiorint-commits.github.io/Vista-Vida/`**
 
 ---
 

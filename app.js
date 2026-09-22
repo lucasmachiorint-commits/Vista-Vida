@@ -8,8 +8,8 @@
   // --- DEFAULT MOCK DATA STORE ---
   const DEFAULT_DATA = {
     property: {
-      name: "Chácara Recanto das Águas",
-      title: "Chácara Recanto das Águas — Lazer, Conforto e Natureza em Atibaia",
+      name: "Chácara Vista Vida",
+      title: "Chácara Vista Vida — Lazer, Conforto e Natureza",
       description: "Um verdadeiro refúgio de paz a apenas 50 minutos de São Paulo! \n\nA propriedade conta com mais de 3.500m² de área verde totalmente murada e privativa, ampla piscina climatizada com prainha para crianças, área gourmet completa integrada à churrasqueira e forno de pizza a lenha, salão de jogos com bilhar oficial e pebolim, além de campo de futebol gramado com iluminação noturna.\n\nIdeal para reuniões familiares, aniversários intimistas e finais de semana relaxantes com amigos.",
       sleeps: 15,
       events: 80,
