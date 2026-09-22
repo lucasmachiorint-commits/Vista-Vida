@@ -1,0 +1,17 @@
+﻿{
+  "name": "chacara-locacao",
+  "version": "1.0.0",
+  "description": "Site para locacao de chacara por temporada com UX estilo Airbnb, CMS completo e geracao de contrato",
+  "main": "app.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed"
+  },
+  "keywords": ["chacara", "aluguel-temporada", "airbnb", "cms", "reservas"],
+  "author": "lucasmachiorint-commits",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.42.0"
+  }
+}

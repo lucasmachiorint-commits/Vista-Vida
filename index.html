@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chácara Recanto das Águas — Locação por Temporada & Eventos</title>
+  <meta name="description" content="Chácara para aluguel por temporada e eventos familiares. Piscina aquecida, churrasqueira, campo de futebol, salão de jogos e acomodação para até 15 pessoas.">
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Leaflet Maps CSS & JS (100% Free / OpenStreetMap) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- jsPDF for Free Client-Side Contract Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- ========================================================================
+       SITE HEADER (AIRBNB STYLE NAVBAR)
+       ======================================================================== -->
+  <header class="site-header">
+    <div class="container navbar">
+      <a href="#home" class="brand-logo" id="nav-brand">
+        <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3zm0 2.84L18 11v7h-2v-6H8v6H6v-7l6-5.16z"/></svg>
+        <span id="header-property-name">Recanto das Águas</span>
+      </a>
+
+      <nav class="nav-links">
+        <a href="#fotos" class="nav-link">Fotos</a>
+        <a href="#estrutura" class="nav-link">Estrutura & Regras</a>
+        <a href="#localizacao" class="nav-link">Localização</a>
+        <a href="#passeios" class="nav-link">Guia Local</a>
+        <a href="#avaliacoes" class="nav-link">Avaliações</a>
+        <a href="#faq" class="nav-link">Dúvidas</a>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="btn-admin-nav" id="btn-open-admin">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          Área do Proprietário
+        </button>
+        <a href="#reservar" class="btn-primary" id="btn-header-reservar">Solicitar Reserva</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================
+       PUBLIC VIEW: PROPERTY LISTING PAGE
+       ======================================================================== -->
+  <main id="public-view" class="public-view">
+    <div class="container">
+      
+      <!-- Property Title & Meta -->
+      <section class="property-header" id="home">
+        <h1 class="property-title" id="display-title">Chácara Recanto das Águas — Lazer, Conforto e Natureza</h1>
+        <div class="property-meta">
+          <div class="meta-badges">
+            <span class="badge-rating">
+              <span style="color: #ff385c;">★</span> <strong id="rating-score">4.98</strong> (<span id="reviews-count">42</span> avaliações)
+            </span>
+            <span>•</span>
+            <span class="badge-superhost">🏆 Preferido dos Hóspedes</span>
+            <span>•</span>
+            <a href="#localizacao" class="badge-location" id="display-short-address">Atibaia, São Paulo - Brasil</a>
+          </div>
+          <div class="meta-actions">
+            <button class="btn-meta" id="btn-share">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+              Compartilhar
+            </button>
+            <button class="btn-meta" id="btn-save">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+              Salvar
+            </button>
+          </div>
+        </div>
+
+        <!-- Airbnb Photo Mosaic Grid -->
+        <div class="gallery-mosaic" id="fotos">
+          <div class="mosaic-grid" id="mosaic-container">
+            <!-- Injected by app.js -->
+          </div>
+          <button class="btn-all-photos" id="btn-open-gallery-modal">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            Mostrar todas as fotos (<span id="total-photos-count">0</span>)
+          </button>
+        </div>
+      </section>
+
+      <!-- Main Layout: Details (Left) + Sticky Booking Card (Right) -->
+      <div class="main-layout">
+        
+        <!-- Left Column: Details -->
+        <div class="property-details">
+          
+          <!-- Quick Specs (Ficha Técnica Rápida) -->
+          <section class="quick-specs-section">
+            <div class="quick-specs-grid">
+              <div class="spec-card">
+                <span class="spec-icon">🛏️</span>
+                <span class="spec-title">Acomodação</span>
+                <span class="spec-value" id="spec-sleep">Dormem até 15</span>
+              </div>
+              <div class="spec-card">
+                <span class="spec-icon">🎉</span>
+                <span class="spec-title">Eventos</span>
+                <span class="spec-value" id="spec-event">Festas até 80</span>
+              </div>
+              <div class="spec-card">
+                <span class="spec-icon">🚪</span>
+                <span class="spec-title">Quartos & Banheiros</span>
+                <span class="spec-value" id="spec-rooms">4 Qts / 5 Banh.</span>
+              </div>
+              <div class="spec-card">
+                <span class="spec-icon">🚗</span>
+                <span class="spec-title">Estacionamento</span>
+                <span class="spec-value" id="spec-parking">10 Veículos</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Video Tour / Drone Feature Card -->
+          <section class="video-tour-banner" id="video-banner">
+            <div style="background: linear-gradient(135deg, #1b3817 0%, #2d5a27 100%); color: white; padding: 1.5rem; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+              <div>
+                <h3 style="color: white; margin-bottom: 0.25rem;">🚁 Tour Virtual & Visão Aérea de Drone</h3>
+                <p style="font-size: 0.9rem; opacity: 0.9;">Veja a dimensão real do terreno, piscina e área verde da propriedade.</p>
+              </div>
+              <button class="btn-primary" style="background: white; color: var(--dark);" id="btn-watch-video">
+                ▶ Assistir Vídeo
+              </button>
+            </div>
+          </section>
+
+          <!-- Property Description -->
+          <section class="section-divider">
+            <h2>Sobre o Espaço</h2>
+            <div id="property-description" style="margin-top: 1rem; color: var(--gray-700); line-height: 1.7; white-space: pre-line;">
+              <!-- Injected by app.js -->
+            </div>
+          </section>
+
+          <!-- Amenities (Comodidades) -->
+          <section class="section-divider" id="estrutura">
+            <h2>O que esse lugar oferece</h2>
+            <p style="color: var(--gray-500); margin-bottom: 1.25rem;">Toda a estrutura pensada para descanso, confraternizações e momentos inesquecíveis.</p>
+            <div class="amenities-grid" id="amenities-container">
+              <!-- Injected by app.js -->
+            </div>
+          </section>
+
+          <!-- House Rules & Restrictions (Regras da Casa) -->
+          <section class="section-divider">
+            <h2>Regras da Casa e Restrições</h2>
+            <p style="color: var(--gray-500); margin-bottom: 1.25rem;">Para garantir a boa convivência e conservação do espaço:</p>
+            <div class="rules-grid" id="rules-container">
+              <!-- Injected by app.js -->
+            </div>
+          </section>
+
+          <!-- Location & Interactive Map -->
+          <section class="section-divider" id="localizacao">
+            <h2>Localização & Acesso</h2>
+            <p id="display-full-address" style="color: var(--gray-700); margin: 0.5rem 0 1rem; font-weight: 500;">
+              Estrada Municipal das Palmeiras, Km 4 - Bairro do Portão, Atibaia - SP
+            </p>
+            
+            <!-- Map Container -->
+            <div id="map-container" style="height: 350px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--gray-200); margin-bottom: 1.5rem; z-index: 1;"></div>
+            
+            <!-- Access instructions card -->
+            <div style="background: var(--gray-100); padding: 1.25rem; border-radius: var(--radius-md); border-left: 4px solid var(--forest-green);">
+              <h4 style="margin-bottom: 0.4rem;">🚗 Orientações da Estrada & Acesso:</h4>
+              <p id="access-road-info" style="font-size: 0.9rem; color: var(--gray-700);">
+                Acesso por rodovia 100% asfaltada até o portal de entrada, com apenas 600m de estrada de terra bem cascalhada e plana (trafegável em qualquer condição de tempo).
+              </p>
+            </div>
+
+            <!-- Nearby points of interest -->
+            <div style="margin-top: 1.25rem;">
+              <h4 style="margin-bottom: 0.75rem;">🏪 Pontos de Apoio Próximos:</h4>
+              <div id="nearby-points-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
+                <!-- Injected by app.js -->
+              </div>
+            </div>
+          </section>
+
+          <!-- Local Recommendations (Guia do Entorno) -->
+          <section class="section-divider" id="passeios">
+            <h2>Guia do Entorno: Passeios & Gastronomia</h2>
+            <p style="color: var(--gray-500); margin-bottom: 1rem;">Recomendações curadas pelo proprietário para aproveitar a região:</p>
+            
+            <div class="category-tabs" id="rec-category-tabs">
+              <button class="tab-btn active" data-category="todos">Todos</button>
+              <button class="tab-btn" data-category="restaurante">🍽️ Restaurantes & Bares</button>
+              <button class="tab-btn" data-category="passeio">🎯 Passeios & Lazer</button>
+              <button class="tab-btn" data-category="mercado">🛒 Mercados & Adegas</button>
+            </div>
+
+            <div class="recommendations-grid" id="recommendations-container">
+              <!-- Injected by app.js -->
+            </div>
+          </section>
+
+          <!-- Guest Reviews -->
+          <section class="section-divider" id="avaliacoes">
+            <div style="display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1.25rem;">
+              <h2>Avaliações de Hóspedes</h2>
+              <span style="font-size: 1.1rem; font-weight: 700;">★ 4.98 • 42 avaliações</span>
+            </div>
+            
+            <div id="reviews-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+              <!-- Injected by app.js -->
+            </div>
+          </section>
+
+          <!-- FAQ (Dúvidas Frequentes) -->
+          <section class="section-divider" id="faq">
+            <h2>Dúvidas Frequentes</h2>
+            <p style="color: var(--gray-500); margin-bottom: 1.25rem;">Tudo o que você precisa saber antes de fazer sua reserva.</p>
+            <div class="faq-list" id="faq-container">
+              <!-- Injected by app.js -->
+            </div>
+          </section>
+
+        </div>
+
+        <!-- Right Column: Sticky Booking Card (Desktop) -->
+        <div class="booking-card-wrapper" id="reservar">
+          <div class="sticky-booking-card">
+            <div class="booking-header">
+              <div class="booking-price">
+                <span id="card-price-display">R$ 850</span> <span>/ diária</span>
+              </div>
+              <div style="font-size: 0.85rem; color: var(--forest-green); font-weight: 600;">
+                ★ 4.98 (42)
+              </div>
+            </div>
+
+            <div class="booking-box">
+              <div class="date-pickers">
+                <div class="date-btn" id="btn-select-checkin">
+                  <span class="date-label">CHECK-IN</span>
+                  <span class="date-val" id="val-checkin">Adicionar data</span>
+                </div>
+                <div class="date-btn" id="btn-select-checkout">
+                  <span class="date-label">CHECK-OUT</span>
+                  <span class="date-val" id="val-checkout">Adicionar data</span>
+                </div>
+              </div>
+              <div class="guests-picker" id="btn-select-guests">
+                <span class="date-label">HÓSPEDES</span>
+                <span class="date-val" id="val-guests">2 hóspedes</span>
+              </div>
+            </div>
+
+            <!-- Inline Mini Calendar for Date Selection -->
+            <div id="booking-calendar-box" style="margin-bottom: 1rem; border: 1px solid var(--gray-200); border-radius: var(--radius-sm); padding: 0.75rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <button id="cal-prev-month" style="font-weight: bold; padding: 0.2rem 0.5rem;">◀</button>
+                <strong id="cal-month-title">Setembro 2026</strong>
+                <button id="cal-next-month" style="font-weight: bold; padding: 0.2rem 0.5rem;">▶</button>
+              </div>
+              <div class="cal-grid" id="calendar-days-container">
+                <!-- Injected by app.js -->
+              </div>
+              <div style="display: flex; gap: 0.75rem; justify-content: center; margin-top: 0.6rem; font-size: 0.7rem; color: var(--gray-500);">
+                <span>🟢 Disp.</span>
+                <span>🔴 Ocupado</span>
+                <span>⚫ Seleção</span>
+              </div>
+            </div>
+
+            <button class="btn-primary" style="width: 100%;" id="btn-action-solicitar">
+              Solicitar Reserva
+            </button>
+            <p style="text-align: center; font-size: 0.75rem; color: var(--gray-500); margin-top: 0.6rem;">
+              Você ainda não será cobrado. O proprietário analisará o pedido.
+            </p>
+
+            <!-- Price Breakdown Calculation -->
+            <div class="price-breakdown" id="price-breakdown">
+              <div class="breakdown-row">
+                <span id="breakdown-nights-label">R$ 850 x 2 diárias</span>
+                <span id="breakdown-nights-val">R$ 1.700</span>
+              </div>
+              <div class="breakdown-row" id="row-extra-guests" style="display: none;">
+                <span id="breakdown-extra-label">Hóspedes extras</span>
+                <span id="breakdown-extra-val">R$ 0</span>
+              </div>
+              <div class="breakdown-row">
+                <span>Taxa de limpeza</span>
+                <span id="breakdown-cleaning-val">R$ 350</span>
+              </div>
+              <div class="breakdown-row">
+                <span>Caução garantia (reembolsável)</span>
+                <span id="breakdown-deposit-val">R$ 500</span>
+              </div>
+              <div class="breakdown-row breakdown-total">
+                <span>Total Estimado</span>
+                <span id="breakdown-total-val">R$ 2.550</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ========================================================================
+       MOBILE STICKY BOOKING BAR (BOTTOM)
+       ======================================================================== -->
+  <div class="mobile-booking-bar">
+    <div>
+      <div style="font-weight: 700; font-size: 1.1rem;"><span id="mobile-price-val">R$ 850</span> <span style="font-size: 0.8rem; font-weight: normal; color: var(--gray-500);">/ diária</span></div>
+      <div style="font-size: 0.8rem; text-decoration: underline; color: var(--dark);" id="mobile-dates-summary">Selecionar datas</div>
+    </div>
+    <button class="btn-primary" id="btn-mobile-solicitar">Solicitar</button>
+  </div>
+
+  <!-- ========================================================================
+       MODAL: SOLICITAÇÃO DE RESERVA (COM FLUXO DE APROVAÇÃO)
+       ======================================================================== -->
+  <div class="modal-overlay" id="modal-booking-request">
+    <div class="modal-content">
+      <button class="modal-close" id="btn-close-booking-modal">&times;</button>
+      <h3 style="margin-bottom: 0.5rem;">Solicitar Reserva da Chácara</h3>
+      <p style="font-size: 0.85rem; color: var(--gray-500); margin-bottom: 1.25rem;">
+        Preencha seus dados para enviar a solicitação diretamente ao proprietário. Após a aprovação, você receberá os dados para pagamento e geração do contrato.
+      </p>
+
+      <form id="form-booking-request">
+        <div style="background: var(--gray-100); padding: 0.75rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; font-size: 0.85rem;">
+          <div><strong>Datas:</strong> <span id="modal-summary-dates">-</span></div>
+          <div><strong>Hóspedes:</strong> <span id="modal-summary-guests">-</span></div>
+          <div><strong>Valor Total:</strong> <span id="modal-summary-total">-</span></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nome Completo *</label>
+          <input type="text" class="form-input" id="req-name" required placeholder="Ex: Carlos Eduardo Silva">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="form-group">
+            <label class="form-label">CPF *</label>
+            <input type="text" class="form-input" id="req-cpf" required placeholder="000.000.000-00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">WhatsApp *</label>
+            <input type="tel" class="form-input" id="req-phone" required placeholder="(11) 99999-9999">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">E-mail *</label>
+          <input type="email" class="form-input" id="req-email" required placeholder="carlos@exemplo.com">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Finalidade da Locação *</label>
+          <select class="form-select" id="req-purpose">
+            <option value="Familiar">Descanso / Encontro Familiar</option>
+            <option value="Confraternizacao">Confraternização Pequena / Amigos</option>
+            <option value="Aniversario">Aniversário Familiar</option>
+            <option value="Outro">Outro (especificar abaixo)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Observações ou Dúvidas</label>
+          <textarea class="form-textarea" rows="2" id="req-notes" placeholder="Levará pet? Horário previsto de chegada?"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+          <button type="submit" class="btn-primary" style="flex: 1;">Enviar Solicitação</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL: FULL PHOTO GALLERY
+       ======================================================================== -->
+  <div class="modal-overlay" id="modal-full-gallery">
+    <div class="modal-content wide">
+      <button class="modal-close" id="btn-close-gallery-modal">&times;</button>
+      <h3 style="margin-bottom: 1rem;">Fotos da Propriedade</h3>
+      
+      <div class="category-tabs" id="gallery-category-tabs">
+        <button class="tab-btn active" data-gallery-cat="todos">Todas</button>
+        <button class="tab-btn" data-gallery-cat="fachada">Fachada & Área Verde</button>
+        <button class="tab-btn" data-gallery-cat="piscina">Piscina & Lazer</button>
+        <button class="tab-btn" data-gallery-cat="churrasqueira">Churrasqueira & Gourmet</button>
+        <button class="tab-btn" data-gallery-cat="quartos">Quartos</button>
+        <button class="tab-btn" data-gallery-cat="interior">Salas & Banheiros</button>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; max-height: 65vh; overflow-y: auto; padding: 0.5rem 0;" id="full-gallery-grid">
+        <!-- Injected by app.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL: VIDEO TOUR / DRONE
+       ======================================================================== -->
+  <div class="modal-overlay" id="modal-video-tour">
+    <div class="modal-content wide">
+      <button class="modal-close" id="btn-close-video-modal">&times;</button>
+      <h3 style="margin-bottom: 1rem;">Tour Virtual & Voo de Drone</h3>
+      <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: var(--radius-md);">
+        <iframe id="video-iframe" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" src="" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL: CONTRATO DE LOCAÇÃO & ASSINATURA GOV.BR
+       ======================================================================== -->
+  <div class="modal-overlay" id="modal-contract-viewer">
+    <div class="modal-content wide">
+      <button class="modal-close" id="btn-close-contract-modal">&times;</button>
+      <h3>Contrato de Locação por Temporada</h3>
+      <p style="font-size: 0.85rem; color: var(--gray-500); margin-bottom: 1rem;">
+        Contrato gerado com base na Lei do Inquilinato (Lei nº 8.245/91). Pronto para download e assinatura digital avançada no GOV.BR (Lei 14.063/2020).
+      </p>
+
+      <div id="contract-paper-preview" style="background: var(--gray-100); border: 1px solid var(--gray-300); border-radius: var(--radius-sm); padding: 1.5rem; max-height: 50vh; overflow-y: auto; font-family: 'Times New Roman', Times, serif; font-size: 0.95rem; line-height: 1.6; color: #111;">
+        <!-- Contract text injected by app.js -->
+      </div>
+
+      <div style="margin-top: 1.25rem; display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: space-between; align-items: center; border-top: 1px solid var(--gray-200); padding-top: 1rem;">
+        <div>
+          <button class="btn-primary" id="btn-download-contract-pdf">
+            📄 Baixar Contrato em PDF
+          </button>
+        </div>
+        <div style="font-size: 0.85rem;">
+          <a href="https://assinatura.gov.br" target="_blank" rel="noopener noreferrer" style="color: var(--forest-green); font-weight: 600; text-decoration: underline;">
+            Abrir Portal de Assinatura GOV.BR ↗
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       ADMIN CMS VIEW (PAINEL DO PROPRIETÁRIO)
+       ======================================================================== -->
+  <section id="admin-view" class="admin-view">
+    <div class="container">
+      
+      <!-- Admin Header -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h2>Painel do Proprietário (CMS Completo)</h2>
+          <p style="font-size: 0.875rem; color: var(--gray-500);">Gerencie reservas, calendário, fotos, regras, mapa e recomendações locais.</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button class="btn-meta" id="btn-export-backup" title="Exporta todas as edições em um arquivo JSON">💾 Exportar Backup</button>
+          <button class="btn-meta" id="btn-import-backup" title="Restaura dados de um arquivo JSON">📂 Restaurar Backup</button>
+          <input type="file" id="file-import-input" accept=".json" style="display: none;">
+          <button class="btn-primary" style="background: var(--dark);" id="btn-exit-admin">Voltar ao Site</button>
+        </div>
+      </div>
+
+      <!-- Admin Tabs Navigation -->
+      <div class="admin-nav-tabs">
+        <button class="admin-tab active" data-admin-tab="reservas">📋 Reservas & Aprovações (<span id="admin-pending-badge">0</span>)</button>
+        <button class="admin-tab" data-admin-tab="calendario">📅 Bloqueio de Datas</button>
+        <button class="admin-tab" data-admin-tab="precos">💰 Tabela de Preços</button>
+        <button class="admin-tab" data-admin-tab="imovel">🏡 Dados do Imóvel & Vídeo</button>
+        <button class="admin-tab" data-admin-tab="fotos">📸 Fotos por Ambiente</button>
+        <button class="admin-tab" data-admin-tab="regras">📜 Regras & Comodidades</button>
+        <button class="admin-tab" data-admin-tab="localizacao">📍 Localização & Estrada</button>
+        <button class="admin-tab" data-admin-tab="passeios">🎯 Recomendações & Passeios</button>
+        <button class="admin-tab" data-admin-tab="faq">❓ FAQ</button>
+      </div>
+
+      <!-- Tab Content 1: Reservas & Fila de Aprovação -->
+      <div class="admin-tab-pane" id="pane-reservas">
+        <div class="admin-card">
+          <h3 style="margin-bottom: 1rem;">Fila de Solicitações & Histórico de Reservas</h3>
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Hóspede</th>
+                  <th>Contato</th>
+                  <th>Período</th>
+                  <th>Hóspedes</th>
+                  <th>Valor Total</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="admin-reservas-table-body">
+                <!-- Injected by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Content 2: Calendário & Bloqueio -->
+      <div class="admin-tab-pane" id="pane-calendario" style="display: none;">
+        <div class="admin-card">
+          <h3 style="margin-bottom: 0.5rem;">Bloquear Datas (Uso Próprio ou Manutenção)</h3>
+          <p style="font-size: 0.85rem; color: var(--gray-500); margin-bottom: 1rem;">Selecione o intervalo para impedir novas solicitações.</p>
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Data Início</label>
+              <input type="date" class="form-input" id="block-start-date">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Data Fim</label>
+              <input type="date" class="form-input" id="block-end-date">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Motivo</label>
+              <input type="text" class="form-input" id="block-reason" placeholder="Ex: Manutenção da piscina, Uso familiar">
+            </div>
+            <div style="align-self: flex-end; margin-bottom: 1rem;">
+              <button class="btn-primary" id="btn-add-date-block">Bloquear Período</button>
+            </div>
+          </div>
+
+          <h4 style="margin: 1rem 0 0.5rem;">Bloqueios Atuais</h4>
+          <div id="blocked-dates-list">
+            <!-- Injected by app.js -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Content 3: Gestão de Preços -->
+      <div class="admin-tab-pane" id="pane-precos" style="display: none;">
+        <div class="admin-card">
+          <h3 style="margin-bottom: 1rem;">Configuração de Tarifas</h3>
+          <form id="form-admin-prices">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+              <div class="form-group">
+                <label class="form-label">Diária Dias Úteis (Seg-Qui)</label>
+                <input type="number" class="form-input" id="price-weekday" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Diária Fim de Semana (Sex-Dom)</label>
+                <input type="number" class="form-input" id="price-weekend" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Diária Feriados / Alta Temp.</label>
+                <input type="number" class="form-input" id="price-holiday" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Valor por Hóspede Extra / dia</label>
+                <input type="number" class="form-input" id="price-extra-guest" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Taxa de Limpeza</label>
+                <input type="number" class="form-input" id="price-cleaning" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Caução Garantia (Reembolsável)</label>
+                <input type="number" class="form-input" id="price-deposit" required>
+              </div>
+            </div>
+            <button type="submit" class="btn-primary" style="margin-top: 1rem;">Salvar Preços</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Tab Content 4: Dados do Imóvel & Vídeo Drone -->
+      <div class="admin-tab-pane" id="pane-imovel" style="display: none;">
+        <div class="admin-card">
+          <h3 style="margin-bottom: 1rem;">Ficha Técnica & Mídia</h3>
+          <form id="form-admin-property">
+            <div class="form-group">
+              <label class="form-label">Nome da Chácara</label>
+              <input type="text" class="form-input" id="admin-prop-name" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Título Chamativo</label>
+              <input type="text" class="form-input" id="admin-prop-title" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Descrição Completa</label>
+              <textarea class="form-textarea" rows="4" id="admin-prop-desc"></textarea>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem;">
+              <div class="form-group">
+                <label class="form-label">Capacidade Dormir</label>
+                <input type="number" class="form-input" id="admin-prop-sleep">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Capacidade Festas</label>
+                <input type="number" class="form-input" id="admin-prop-events">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Quartos</label>
+                <input type="number" class="form-input" id="admin-prop-bedrooms">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Banheiros</label>
+                <input type="number" class="form-input" id="admin-prop-bathrooms">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Vagas de Carro</label>
+                <input type="number" class="form-input" id="admin-prop-parking">
+              </div>
+            </div>
+            <div class="form-group" style="margin-top: 0.5rem;">
+              <label class="form-label">Link do Vídeo do Drone / Tour Virtual (YouTube Embed ou URL)</label>
+              <input type="text" class="form-input" id="admin-prop-video" placeholder="https://www.youtube.com/embed/...">
+            </div>
+            <button type="submit" class="btn-primary" style="margin-top: 1rem;">Salvar Informações</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Tab Content 5: Fotos por Ambiente -->
+      <div class="admin-tab-pane" id="pane-fotos" style="display: none;">
+        <div class="admin-card">
+          <h3 style="margin-bottom: 0.5rem;">Gerenciador de Fotos por Ambiente</h3>
+          <p style="font-size: 0.85rem; color: var(--gray-500); margin-bottom: 1rem;">Adicione links de fotos organizadas por categoria.</p>
+          
+          <form id="form-add-photo" style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem; background: var(--gray-100); padding: 1rem; border-radius: var(--radius-sm);">
+            <div class="form-group" style="flex: 2; min-width: 250px;">
+              <label class="form-label">URL da Imagem</label>
+              <input type="url" class="form-input" id="new-photo-url" required placeholder="https://images.unsplash.com/...">
+            </div>
+            <div class="form-group" style="flex: 1; min-width: 150px;">
+              <label class="form-label">Ambiente / Categoria</label>
+              <select class="form-select" id="new-photo-cat">
+                <option value="fachada">Fachada & Área Verde</option>
+                <option value="piscina">Piscina & Lazer</option>
+                <option value="churrasqueira">Churrasqueira & Gourmet</option>
+                <option value="quartos">Quartos</option>
+                <option value="interior">Salas & Banheiros</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex: 1; min-width: 150px;">
+              <label class="form-label">Legenda</label>
+              <input type="text" class="form-input" id="new-photo-caption" placeholder="Ex: Vista da piscina ao entardecer">
+            </div>
+            <div style="align-self: flex-end; margin-bottom: 1rem;">
+              <button type="submit" class="btn-primary">+ Adicionar Foto</button>
+            </div>
+          </form>
+
+          <div id="admin-photos-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem;">
+            <!-- Injected by app.js -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Content 6: Regras & Comodidades -->
+      <div class="admin-tab-pane" id="pane-regras" style="display: none;">
+        <div class="admin-card">
+          <h3 style="margin-bottom: 1rem;">Regras da Casa & Restrições</h3>
+          <div id="admin-rules-list" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem;">
+            <!-- Injected by app.js -->
+          </div>
+          <button class="btn-meta" id="btn-add-rule">+ Adicionar Nova Regra</button>
+        </div>
+
+        <div class="admin-card">
+          <h3 style="margin-bottom: 1rem;">Comodidades & Itens Inclusos</h3>
+          <div id="admin-amenities-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem;">
+            <!-- Injected by app.js -->
+          </div>
+          <button class="btn-meta" id="btn-add-amenity">+ Adicionar Nova Comodidade</button>
+        </div>
+      </div>
+
+      <!-- Tab Content 7: Localização & Estrada -->
+      <div class="admin-tab-pane" id="pane-localizacao" style="display: none;">
+        <div class="admin-card">
+          <h3 style="margin-bottom: 1rem;">Localização e Instruções de Chegada</h3>
+          <form id="form-admin-location">
+            <div class="form-group">
+              <label class="form-label">Endereço Completo</label>
+              <input type="text" class="form-input" id="admin-loc-address" required>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-group">
+                <label class="form-label">Latitude</label>
+                <input type="number" step="any" class="form-input" id="admin-loc-lat">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Longitude</label>
+                <input type="number" step="any" class="form-input" id="admin-loc-lng">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Instruções sobre a Estrada (Trecho de terra, etc.)</label>
+              <textarea class="form-textarea" rows="3" id="admin-loc-road"></textarea>
+            </div>
+            <button type="submit" class="btn-primary">Salvar Localização</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Tab Content 8: Recomendações & Passeios -->
+      <div class="admin-tab-pane" id="pane-passeios" style="display: none;">
+        <div class="admin-card">
+          <h3 style="margin-bottom: 1rem;">Guia Local: Passeios, Restaurantes e Mercados</h3>
+          <form id="form-add-rec" style="background: var(--gray-100); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
+              <div class="form-group">
+                <label class="form-label">Nome do Local</label>
+                <input type="text" class="form-input" id="rec-name" required placeholder="Ex: Pizzaria Fornalha">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Categoria</label>
+                <select class="form-select" id="rec-cat">
+                  <option value="restaurante">Restaurante / Bar</option>
+                  <option value="passeio">Passeio / Cachoeira / Lazer</option>
+                  <option value="mercado">Mercado / Adega / Farmácia</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Distância (km)</label>
+                <input type="number" step="0.1" class="form-input" id="rec-dist" placeholder="Ex: 3.5">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Descrição</label>
+              <input type="text" class="form-input" id="rec-desc" placeholder="Ex: Pizza napolitana artesanal com entrega na chácara">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label class="form-label">URL da Imagem</label>
+                <input type="url" class="form-input" id="rec-img" placeholder="https://...">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Link do Google Maps</label>
+                <input type="url" class="form-input" id="rec-maps" placeholder="https://maps.google.com/...">
+              </div>
+            </div>
+            <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">+ Cadastrar Recomendação</button>
+          </form>
+
+          <div id="admin-rec-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem;">
+            <!-- Injected by app.js -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Content 9: FAQ -->
+      <div class="admin-tab-pane" id="pane-faq" style="display: none;">
+        <div class="admin-card">
+          <h3 style="margin-bottom: 1rem;">Perguntas Frequentes (FAQ)</h3>
+          <div id="admin-faq-list" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem;">
+            <!-- Injected by app.js -->
+          </div>
+          <button class="btn-meta" id="btn-add-faq">+ Adicionar Nova Pergunta</button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       FLOATING WHATSAPP BUTTON
+       ======================================================================== -->
+  <a href="https://wa.me/5511999999999?text=Ol%C3%A1!%20Gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20a%20Ch%C3%A1cara." target="_blank" rel="noopener noreferrer" class="whatsapp-float" id="whatsapp-link" title="Tire suas dúvidas no WhatsApp">
+    💬
+  </a>
+
+  <!-- Main Application Script -->
+  <script src="app.js"></script>
+</body>
+</html>
