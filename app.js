@@ -17,11 +17,12 @@
       bathrooms: 5,
       parking: 10,
       videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ", // Exemplo de embed
-      address: "Estrada Municipal das Palmeiras, Km 4 - Bairro do Portão, Atibaia - SP, CEP 12940-000",
-      shortAddress: "Atibaia, São Paulo - Brasil",
-      lat: -23.1172,
-      lng: -46.5564,
-      roadInfo: "Acesso por rodovia 100% asfaltada até o portal de entrada, com apenas 600m de estrada de terra batida bem cascalhada e plana (trafegável com qualquer veículo de passeio, mesmo em dias de chuva forte)."
+      address: "Estrada José Maria Tonelli, 1720, Socorro - SP, CEP 13960-000",
+      shortAddress: "Socorro, São Paulo - Brasil",
+      lat: -22.6929619,
+      lng: -46.5522407,
+      mapsUrl: "https://maps.app.goo.gl/qX321VcuqdVGxf248",
+      roadInfo: "Acesso fácil pela Estrada José Maria Tonelli, via tranquila e bem sinalizada para qualquer veículo de passeio, permitindo chegada segura tanto de dia quanto à noite."
     },
     prices: {
       weekday: 750,
@@ -42,7 +43,7 @@
       { id: 7, url: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80", category: "fachada", caption: "Área de estacionamento amplo para até 10 carros" }
     ],
     amenities: [
-      { id: 1, name: "Wi-Fi Fibra 500 Mega", icon: "📶", category: "Conectividade" },
+      { id: 1, name: "Wi-Fi Fibra Alta Velocidade", icon: "📶", category: "Conectividade" },
       { id: 2, name: "Piscina Climatizada c/ Cascata", icon: "🏊‍♂️", category: "Lazer" },
       { id: 3, name: "Churrasqueira & Forno de Pizza", icon: "🍖", category: "Lazer" },
       { id: 4, name: "Mesa de Bilhar / Sinuca Oficial", icon: "🎱", category: "Lazer" },
@@ -62,17 +63,17 @@
       { id: 4, title: "Regras de Limpeza e Entrega", desc: "O imóvel é entregue limpo e esterilizado. Na saída, a louça deve estar lavada, lixo recolhido em sacos fechados e churrasqueira sem cinzas soltas.", icon: "🧹" }
     ],
     nearbyPoints: [
-      { id: 1, title: "Supermercado Compre Bem", desc: "A 5 min de carro (açougue completo e padaria)" },
-      { id: 2, title: "Adega & Distribuidora do Zé", desc: "A 4 min de carro (gelo, bebidas e carvão com entrega rápida)" },
-      { id: 3, title: "Farmácia Droga Raia", desc: "A 8 min de carro (atendimento até 22h)" },
-      { id: 4, title: "Pronto Atendimento / Hospital", desc: "A 14 min de carro no centro de Atibaia" }
+      { id: 1, title: "Supermercado Rofatto / Da Villa", desc: "A 8 min de carro (centro de Socorro, açougue e padaria)" },
+      { id: 2, title: "Adega & Distribuidora de Bebidas", desc: "A 6 min de carro (gelo, bebidas e carvão com entrega rápida)" },
+      { id: 3, title: "Farmácia Droga Raia / Farma Conde", desc: "A 8 min de carro no centro" },
+      { id: 4, title: "Santa Casa / Hospital de Socorro", desc: "A 10 min de carro com pronto atendimento 24h" }
     ],
     recommendations: [
-      { id: 1, name: "Pizzaria da Villa", category: "restaurante", dist: 3.2, desc: "Pizzas no forno a lenha, ambiente agradável e opção de delivery na chácara.", img: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600&q=80", maps: "https://maps.google.com" },
-      { id: 2, name: "Costelaria Fogão Gaúcho", category: "restaurante", dist: 5.0, desc: "Costela de chão e buffet caipira completo nos almoços de sábado e domingo.", img: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80", maps: "https://maps.google.com" },
-      { id: 3, name: "Trilha e Mirante da Pedra Grande", category: "passeio", dist: 12.5, desc: "Ponto turístico famoso para voo livre e contemplação do pôr do sol nas montanhas.", img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80", maps: "https://maps.google.com" },
-      { id: 4, name: "Pesqueiro & Restaurante São Pedro", category: "passeio", dist: 4.8, desc: "Pesca esportiva, lagos limpos e porções deliciosas de tilápia fresca.", img: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=600&q=80", maps: "https://maps.google.com" },
-      { id: 5, name: "Empório e Adega Vinhos da Serra", category: "mercado", dist: 4.0, desc: "Queijos artesanais da serra, vinhos finos, cachaças regionais e doces caseiros.", img: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=600&q=80", maps: "https://maps.google.com" }
+      { id: 1, name: "Mirante da Pedra Bela Vista", category: "passeio", dist: 9.5, desc: "Ponto turístico mais famoso de Socorro. Vista panorâmica espetacular, pôr do sol inesquecível e gastrobar.", img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80", maps: "https://maps.google.com" },
+      { id: 2, name: "Rafting & Ecoturismo no Rio do Peixe", category: "passeio", dist: 8.0, desc: "Parques de aventura com descida de rafting familiar, tirolesa e cachoeiras no polo do turismo de aventura.", img: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=600&q=80", maps: "https://maps.google.com" },
+      { id: 3, name: "Restaurante Fogão a Lenha do Lago", category: "restaurante", dist: 5.5, desc: "Culinária caipira autêntica servida em panelas de barro no fogão a lenha com vista para as colinas.", img: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80", maps: "https://maps.google.com" },
+      { id: 4, name: "Pizzaria e Trattoria Della Nonna", category: "restaurante", dist: 6.0, desc: "Massas artesanais e pizzas crocantes assadas no forno a lenha, com entrega na chácara.", img: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600&q=80", maps: "https://maps.google.com" },
+      { id: 5, name: "Empório e Alambique do Circuito das Águas", category: "mercado", dist: 5.0, desc: "Queijos artesanais premiados, doces mineiros caseiros, cachaças envelhecidas e vinhos da serra.", img: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=600&q=80", maps: "https://maps.google.com" }
     ],
     reviews: [
       { id: 1, author: "Mariana Albuquerque", date: "Agosto 2026", rating: 5, comment: "Fim de semana maravilhoso em família! A chácara é ainda mais bonita pessoalmente. A piscina quentinha fez a alegria das crianças e a área gourmet é muito completa. Proprietário muito solícito e rápido nas respostas." },
@@ -125,7 +126,7 @@
   };
 
   // --- STATE CONTROLLER (LOCALSTORAGE PERSISTENCE) ---
-  const STORAGE_KEY = 'chacara_recanto_aguas_db_v1';
+  const STORAGE_KEY = 'chacara_vista_vida_db_v2';
 
   function loadState() {
     try {
