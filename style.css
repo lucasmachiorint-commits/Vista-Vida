@@ -984,3 +984,18 @@ button {
   max-width: 500px;
   line-height: 1.5;
 }
+
+/* Security & Compliance Styles */
+.site-footer a {
+  transition: color 0.15s ease;
+}
+
+.site-footer a:hover {
+  color: var(--white) !important;
+}
+
+#cpf-validation-hint {
+  display: block;
+  margin-top: 0.25rem;
+  transition: color 0.2s ease;
+}
