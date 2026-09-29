@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    CHÁCARA LOCAÇÃO - DESIGN SYSTEM (INSPIRADO NO AIRBNB)
    ========================================================================== */
 
@@ -926,4 +926,61 @@ button {
 .cal-day.in-range {
   background: var(--gray-100);
   color: var(--dark);
+}
+
+/* Star Rating Picker Component */
+.star-rating-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0;
+}
+
+.star-btn {
+  font-size: 1.8rem;
+  line-height: 1;
+  color: var(--gray-300);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 0.15rem;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.star-btn:hover {
+  transform: scale(1.15);
+}
+
+.star-btn.active, .star-btn.hovered {
+  color: #ff385c;
+}
+
+/* Empty Reviews Banner */
+.empty-reviews-card {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+  border: 1px dashed #86efac;
+  border-radius: var(--radius-md);
+  padding: 2.25rem 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.empty-reviews-card .empty-icon {
+  font-size: 2.5rem;
+}
+
+.empty-reviews-card h3 {
+  font-size: 1.2rem;
+  color: var(--forest-dark);
+}
+
+.empty-reviews-card p {
+  color: var(--gray-700);
+  font-size: 0.95rem;
+  max-width: 500px;
+  line-height: 1.5;
 }

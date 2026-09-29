@@ -75,11 +75,7 @@
       { id: 4, name: "Pizzaria e Trattoria Della Nonna", category: "restaurante", dist: 6.0, desc: "Massas artesanais e pizzas crocantes assadas no forno a lenha, com entrega na chácara.", img: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600&q=80", maps: "https://maps.google.com" },
       { id: 5, name: "Empório e Alambique do Circuito das Águas", category: "mercado", dist: 5.0, desc: "Queijos artesanais premiados, doces mineiros caseiros, cachaças envelhecidas e vinhos da serra.", img: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=600&q=80", maps: "https://maps.google.com" }
     ],
-    reviews: [
-      { id: 1, author: "Mariana Albuquerque", date: "Agosto 2026", rating: 5, comment: "Fim de semana maravilhoso em família! A chácara é ainda mais bonita pessoalmente. A piscina quentinha fez a alegria das crianças e a área gourmet é muito completa. Proprietário muito solícito e rápido nas respostas." },
-      { id: 2, author: "Rodrigo Mendonça", date: "Julho 2026", rating: 5, comment: "Lugar impecável, super limpo e organizado. O acesso é muito fácil, a estrada de terra é curtinha e ótima. A mesa de bilhar e o campo de futebol foram um sucesso. Com certeza voltaremos!" },
-      { id: 3, author: "Camila Guimarães", date: "Junho 2026", rating: 5, comment: "Excelente custo-benefício. Fizemos o aniversário da minha mãe para 40 pessoas e acomodou perfeitamente. O contrato foi gerado certinho e assinamos pelo GOV.BR sem complicação nenhuma." }
-    ],
+    reviews: [],
     faqs: [
       { id: 1, q: "Quais são os horários padrão de Check-in e Check-out?", a: "Para estadias de fim de semana, o check-in tem início às sextas-feiras a partir das 17h00 e o check-out ocorre aos domingos até as 18h00. Horários flexíveis podem ser combinados com o proprietário mediante disponibilidade." },
       { id: 2, q: "Como funciona a assinatura do contrato pelo GOV.BR?", a: "Após a aprovação da solicitação pelo proprietário, o sistema gera automaticamente o PDF do Contrato de Locação por Temporada. Você pode baixá-lo e assiná-lo gratuitamente em poucos segundos no portal oficial 'assinatura.gov.br' usando sua conta GOV Prata ou Ouro, com plena validade jurídica." },
@@ -126,33 +122,17 @@
   };
 
   // --- STATE CONTROLLER (LOCALSTORAGE PERSISTENCE) ---
-  const STORAGE_KEY = 'chacara_vista_vida_db_v2';
+  const STORAGE_KEY = 'chacara_vista_vida_db_v3';
 
   function loadState() {
     try {
       // Clear legacy storage keys
       localStorage.removeItem('chacara_recanto_aguas_db_v1');
+      localStorage.removeItem('chacara_vista_vida_db_v2');
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Auto-heal if previously cached with Atibaia or missing mapsUrl
-        if (parsed.property && (
-            !parsed.property.mapsUrl ||
-            (parsed.property.address && parsed.property.address.includes('Atibaia')) ||
-            (parsed.property.shortAddress && parsed.property.shortAddress.includes('Atibaia'))
-        )) {
-          parsed.property.name = DEFAULT_DATA.property.name;
-          parsed.property.title = DEFAULT_DATA.property.title;
-          parsed.property.address = DEFAULT_DATA.property.address;
-          parsed.property.shortAddress = DEFAULT_DATA.property.shortAddress;
-          parsed.property.lat = DEFAULT_DATA.property.lat;
-          parsed.property.lng = DEFAULT_DATA.property.lng;
-          parsed.property.mapsUrl = DEFAULT_DATA.property.mapsUrl;
-          parsed.property.roadInfo = DEFAULT_DATA.property.roadInfo;
-          parsed.nearbyPoints = DEFAULT_DATA.nearbyPoints;
-          parsed.recommendations = DEFAULT_DATA.recommendations;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-        }
+        if (!parsed.reviews) parsed.reviews = [];
         return parsed;
       }
     } catch (e) {
@@ -247,6 +227,39 @@
     };
   }
 
+  // --- RATING & REVIEWS CALCULATOR ---
+  function getRatingStats() {
+    const reviews = state.reviews || [];
+    if (reviews.length === 0) {
+      return {
+        count: 0,
+        avg: 0,
+        isNew: true,
+        headerBadgeScore: "Novo",
+        headerBadgeCount: "(Sem avaliações ainda)",
+        cardBadge: "★ Novo",
+        sectionSummary: "★ Novo • Sem avaliações ainda",
+        adminAvg: "★ Novo"
+      };
+    }
+
+    const sum = reviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
+    const avg = (sum / reviews.length).toFixed(2);
+    const count = reviews.length;
+    const plural = count > 1 ? 's' : '';
+
+    return {
+      count,
+      avg,
+      isNew: false,
+      headerBadgeScore: avg,
+      headerBadgeCount: `(${count} avaliação${plural})`,
+      cardBadge: `★ ${avg} (${count})`,
+      sectionSummary: `★ ${avg} • ${count} avaliação${plural}`,
+      adminAvg: `★ ${avg}`
+    };
+  }
+
   // --- RENDER DOM FUNCTIONS ---
 
   function renderPublicView() {
@@ -257,6 +270,19 @@
     document.getElementById('display-full-address').textContent = state.property.address;
     document.getElementById('property-description').textContent = state.property.description;
     document.getElementById('access-road-info').textContent = state.property.roadInfo;
+
+    // Dynamic Rating Badges & Indicators
+    const stats = getRatingStats();
+    const ratingScoreEl = document.getElementById('rating-score');
+    const reviewsCountWrapperEl = document.getElementById('reviews-count-wrapper');
+    if (ratingScoreEl) ratingScoreEl.textContent = stats.headerBadgeScore;
+    if (reviewsCountWrapperEl) reviewsCountWrapperEl.textContent = stats.headerBadgeCount;
+
+    const cardRatingEl = document.getElementById('card-rating-display');
+    if (cardRatingEl) cardRatingEl.textContent = stats.cardBadge;
+
+    const sectionReviewsSummaryEl = document.getElementById('section-reviews-summary');
+    if (sectionReviewsSummaryEl) sectionReviewsSummaryEl.textContent = stats.sectionSummary;
 
     // Google Maps Link & Embedded Iframe Dynamic Update
     const mapsLinkBtn = document.getElementById('btn-google-maps-link');
@@ -399,16 +425,37 @@
 
   function renderReviews() {
     const container = document.getElementById('reviews-container');
-    container.innerHTML = state.reviews.map(rev => `
-      <div style="border: 1px solid var(--gray-200); border-radius: var(--radius-md); padding: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <strong style="color: var(--dark);">${rev.author}</strong>
-          <span style="color: #ff385c;">★★★★★</span>
+    if (!container) return;
+
+    if (!state.reviews || state.reviews.length === 0) {
+      container.innerHTML = `
+        <div class="empty-reviews-card">
+          <span class="empty-icon">⭐</span>
+          <h3>Seja o primeiro a avaliar a Chácara Vista Vida!</h3>
+          <p>Você já se hospedou conosco? Compartilhe sua experiência sobre a estrutura, piscina, acomodações e atendimento para orientar outros visitantes.</p>
+          <button class="btn-primary" onclick="window.appOpenReviewModal()" style="font-size: 0.9rem; padding: 0.6rem 1.4rem;">
+            ⭐ Deixar uma Avaliação
+          </button>
         </div>
-        <div style="font-size: 0.8rem; color: var(--gray-500);">${rev.date}</div>
-        <p style="font-size: 0.9rem; color: var(--gray-700); line-height: 1.5;">"${rev.comment}"</p>
-      </div>
-    `).join('');
+      `;
+      return;
+    }
+
+    container.innerHTML = state.reviews.map(rev => {
+      const rating = Number(rev.rating) || 5;
+      const starsStr = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+
+      return `
+        <div style="border: 1px solid var(--gray-200); border-radius: var(--radius-md); padding: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; background: var(--white); box-shadow: var(--shadow-sm);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong style="color: var(--dark); font-size: 0.95rem;">${rev.author}</strong>
+            <span style="color: #ff385c; letter-spacing: 2px;">${starsStr}</span>
+          </div>
+          <div style="font-size: 0.8rem; color: var(--gray-500);">${rev.date || 'Hóspede recente'}</div>
+          <p style="font-size: 0.9rem; color: var(--gray-700); line-height: 1.5;">"${rev.comment}"</p>
+        </div>
+      `;
+    }).join('');
   }
 
   function renderFAQs() {
@@ -597,6 +644,7 @@
   // --- ADMIN CMS RENDERERS & EVENT HANDLERS ---
   function renderAdminView() {
     renderAdminReservas();
+    renderAdminReviews();
     renderAdminBlockedDates();
     renderAdminPricesForm();
     renderAdminPropertyForm();
@@ -652,12 +700,112 @@
                 <button class="btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; background: #0070f3;" onclick="window.appMarkPaidBooking('${b.id}')">💰 Pago</button>
               ` : ''}
               <button class="btn-meta" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="window.appViewContract('${b.id}')">📄 Contrato</button>
+              <button class="btn-meta" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; color: #ff385c; border-color: #ff385c;" onclick="window.appSendReviewLink('${b.id}')" title="Gerar link de avaliação para este hóspede">⭐ Avaliação</button>
             </div>
           </td>
         </tr>
       `;
     }).join('');
   }
+
+  window.appSendReviewLink = function(bookingId) {
+    const booking = state.bookings.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    let baseUrl = 'https://lucasmachiorint-commits.github.io/Vista-Vida/';
+    if (typeof window !== 'undefined' && window.location && window.location.origin && window.location.origin !== "null" && window.location.origin !== "file://") {
+      baseUrl = window.location.origin + window.location.pathname;
+    }
+    baseUrl = baseUrl.replace(/\/+$/, '') + '/';
+
+    const reviewLink = `${baseUrl}?avaliar=${encodeURIComponent(booking.id)}`;
+    const phoneClean = (booking.phone || '').replace(/\D/g, '');
+    const message = `Olá ${booking.guestName}! Esperamos que sua estadia na Chácara Vista Vida tenha sido muito especial. Poderia nos ajudar avaliando nosso espaço e atendimento? Leva menos de 1 minuto através do link: ${reviewLink}`;
+
+    const choice = confirm(
+      `⭐ Enviar Link de Avaliação\n\n` +
+      `Hóspede: ${booking.guestName} (${booking.id})\n` +
+      `Link:\n${reviewLink}\n\n` +
+      `Clique em OK para abrir o WhatsApp (${booking.phone || 'Sem número'}) com a mensagem pronta, ou CANCELAR para apenas copiar o link para a área de transferência.`
+    );
+
+    if (choice) {
+      if (phoneClean) {
+        window.open(`https://wa.me/55${phoneClean}?text=${encodeURIComponent(message)}`, '_blank');
+      } else {
+        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+      }
+    } else {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(reviewLink).then(() => {
+          alert(`Link de avaliação copiado com sucesso:\n${reviewLink}`);
+        }).catch(() => {
+          prompt("Copie o link de avaliação:", reviewLink);
+        });
+      } else {
+        prompt("Copie o link de avaliação:", reviewLink);
+      }
+    }
+  };
+
+  function renderAdminReviews() {
+    const stats = getRatingStats();
+    const badgeEl = document.getElementById('admin-reviews-badge');
+    const avgEl = document.getElementById('admin-reviews-avg');
+    const totalEl = document.getElementById('admin-reviews-total');
+    const listEl = document.getElementById('admin-reviews-list');
+    const quickLinkInput = document.getElementById('quick-review-link');
+
+    if (badgeEl) badgeEl.textContent = stats.count;
+    if (avgEl) avgEl.textContent = stats.adminAvg;
+    if (totalEl) totalEl.textContent = stats.count;
+
+    if (quickLinkInput) {
+      let baseUrl = 'https://lucasmachiorint-commits.github.io/Vista-Vida/';
+      if (typeof window !== 'undefined' && window.location && window.location.origin && window.location.origin !== "null" && window.location.origin !== "file://") {
+        baseUrl = window.location.origin + window.location.pathname;
+      }
+      baseUrl = baseUrl.replace(/\/+$/, '') + '/';
+      quickLinkInput.value = `${baseUrl}?avaliar=geral`;
+    }
+
+    if (!listEl) return;
+
+    if (!state.reviews || state.reviews.length === 0) {
+      listEl.innerHTML = '<p style="color: var(--gray-500); font-size: 0.85rem; padding: 1rem 0;">Nenhuma avaliação cadastrada ainda. Compartilhe o link de avaliação com seus hóspedes pós-estadia para compor o indicador de nota.</p>';
+      return;
+    }
+
+    listEl.innerHTML = state.reviews.map(rev => {
+      const rating = Number(rev.rating) || 5;
+      const starsStr = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+
+      return `
+        <div style="border: 1px solid var(--gray-200); border-radius: var(--radius-sm); padding: 0.85rem; background: var(--white); display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; flex-wrap: wrap;">
+              <strong style="color: var(--dark); font-size: 0.95rem;">${rev.author}</strong>
+              <span style="color: #ff385c; letter-spacing: 1px;">${starsStr} (${rating}.0)</span>
+              ${rev.bookingId ? `<span style="font-size: 0.75rem; background: var(--gray-100); padding: 0.1rem 0.4rem; border-radius: 4px; color: var(--gray-700);">Reserva: ${rev.bookingId}</span>` : ''}
+            </div>
+            <div style="font-size: 0.75rem; color: var(--gray-500); margin-bottom: 0.4rem;">${rev.date || 'Hóspede'}</div>
+            <p style="font-size: 0.85rem; color: var(--gray-700); line-height: 1.4;">"${rev.comment}"</p>
+          </div>
+          <button onclick="window.appRemoveReview(${rev.id})" style="color: red; font-size: 0.8rem; font-weight: 600; white-space: nowrap;">Excluir</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  window.appRemoveReview = function(id) {
+    if (confirm("Deseja realmente remover esta avaliação?")) {
+      state.reviews = state.reviews.filter(r => r.id !== id);
+      saveState(state);
+      renderAdminReviews();
+      renderPublicView();
+      alert("Avaliação removida com sucesso.");
+    }
+  };
 
   window.appApproveBooking = function(id) {
     const booking = state.bookings.find(b => b.id === id);
@@ -1419,10 +1567,205 @@
     reader.readAsText(file);
   });
 
+  // --- GUEST REVIEW MODAL & STAR PICKER LOGIC ---
+  const reviewModal = document.getElementById('modal-guest-review');
+  const reviewForm = document.getElementById('form-guest-review');
+  const starButtons = document.querySelectorAll('#star-picker .star-btn');
+  const ratingInput = document.getElementById('review-rating');
+  const ratingLabel = document.getElementById('star-rating-label');
+
+  const ratingDescriptions = {
+    1: '1.0 (Muito ruim)',
+    2: '2.0 (Ruim)',
+    3: '3.0 (Regular)',
+    4: '4.0 (Muito bom)',
+    5: '5.0 (Excelente!)'
+  };
+
+  function setStarRating(val) {
+    if (ratingInput) ratingInput.value = val;
+    if (ratingLabel) ratingLabel.textContent = ratingDescriptions[val] || `${val}.0`;
+    starButtons.forEach(btn => {
+      const bVal = parseInt(btn.getAttribute('data-rating'), 10);
+      btn.classList.toggle('active', bVal <= val);
+    });
+  }
+
+  starButtons.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const val = parseInt(this.getAttribute('data-rating'), 10);
+      setStarRating(val);
+    });
+
+    btn.addEventListener('mouseenter', function() {
+      const val = parseInt(this.getAttribute('data-rating'), 10);
+      starButtons.forEach(b => {
+        const bVal = parseInt(b.getAttribute('data-rating'), 10);
+        b.classList.toggle('hovered', bVal <= val);
+      });
+    });
+  });
+
+  const starPickerContainer = document.getElementById('star-picker');
+  if (starPickerContainer) {
+    starPickerContainer.addEventListener('mouseleave', function() {
+      const cur = parseInt(ratingInput ? ratingInput.value : 5, 10);
+      starButtons.forEach(b => {
+        b.classList.remove('hovered');
+        const bVal = parseInt(b.getAttribute('data-rating'), 10);
+        b.classList.toggle('active', bVal <= cur);
+      });
+    });
+  }
+
+  window.appOpenReviewModal = function(bookingId) {
+    if (!reviewModal) return;
+
+    if (bookingId && typeof bookingId === 'string' && bookingId !== 'geral') {
+      const booking = state.bookings.find(b => b.id === bookingId);
+      if (booking) {
+        document.getElementById('review-booking-id').value = booking.id;
+        document.getElementById('review-author').value = booking.guestName;
+        const inDate = new Date(booking.checkin + 'T00:00:00');
+        const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        document.getElementById('review-date').value = `${monthNames[inDate.getMonth()]} ${inDate.getFullYear()}`;
+      } else {
+        document.getElementById('review-booking-id').value = bookingId;
+      }
+    } else {
+      document.getElementById('review-booking-id').value = '';
+      const now = new Date();
+      const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+      const dateEl = document.getElementById('review-date');
+      if (dateEl && !dateEl.value) {
+        dateEl.value = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+      }
+    }
+
+    setStarRating(5);
+    reviewModal.classList.add('active');
+  };
+
+  const btnOpenGuestReview = document.getElementById('btn-open-guest-review');
+  if (btnOpenGuestReview) {
+    btnOpenGuestReview.addEventListener('click', () => window.appOpenReviewModal());
+  }
+
+  const btnCloseReviewModal = document.getElementById('btn-close-review-modal');
+  if (btnCloseReviewModal) {
+    btnCloseReviewModal.addEventListener('click', () => {
+      if (reviewModal) reviewModal.classList.remove('active');
+    });
+  }
+
+  if (reviewForm) {
+    reviewForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const author = document.getElementById('review-author').value.trim();
+      const date = document.getElementById('review-date').value.trim();
+      const rating = parseInt(document.getElementById('review-rating').value, 10) || 5;
+      const comment = document.getElementById('review-comment').value.trim();
+      const bookingId = document.getElementById('review-booking-id').value.trim();
+
+      const newReview = {
+        id: Date.now(),
+        author,
+        date,
+        rating,
+        comment,
+        bookingId: bookingId || null,
+        createdAt: new Date().toISOString()
+      };
+
+      if (!state.reviews) state.reviews = [];
+      state.reviews.unshift(newReview);
+      saveState(state);
+
+      this.reset();
+      if (reviewModal) reviewModal.classList.remove('active');
+
+      renderPublicView();
+      renderAdminReviews();
+
+      alert(`🎉 Muito obrigado pela sua avaliação, ${author}!\n\nSua nota (${rating}.0) e seu comentário foram computados no indicador oficial da Chácara Vista Vida.`);
+
+      const reviewsSection = document.getElementById('avaliacoes');
+      if (reviewsSection) {
+        reviewsSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  }
+
+  // Admin: Copy Review Link Button
+  const btnCopyReviewLink = document.getElementById('btn-copy-review-link');
+  if (btnCopyReviewLink) {
+    btnCopyReviewLink.addEventListener('click', () => {
+      const input = document.getElementById('quick-review-link');
+      if (input) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(input.value).then(() => {
+            alert("Link copiado com sucesso! Você pode enviá-lo pelo WhatsApp para seus hóspedes.");
+          }).catch(() => {
+            input.select();
+            document.execCommand('copy');
+            alert("Link copiado!");
+          });
+        } else {
+          input.select();
+          document.execCommand('copy');
+          alert("Link copiado!");
+        }
+      }
+    });
+  }
+
+  // Admin: Manual Review Insertion
+  const btnAdminAddReview = document.getElementById('btn-admin-add-review');
+  if (btnAdminAddReview) {
+    btnAdminAddReview.addEventListener('click', () => {
+      const author = prompt("Nome do Hóspede:");
+      if (!author) return;
+      const date = prompt("Data da Estadia (Ex: Outubro 2026):", "Outubro 2026");
+      if (!date) return;
+      const ratingStr = prompt("Nota de 1 a 5 estrelas:", "5");
+      const rating = parseInt(ratingStr, 10) || 5;
+      const comment = prompt("Comentário do Hóspede:");
+      if (!comment) return;
+
+      const newReview = {
+        id: Date.now(),
+        author,
+        date,
+        rating: Math.min(5, Math.max(1, rating)),
+        comment,
+        bookingId: null,
+        createdAt: new Date().toISOString()
+      };
+
+      if (!state.reviews) state.reviews = [];
+      state.reviews.unshift(newReview);
+      saveState(state);
+
+      renderAdminReviews();
+      renderPublicView();
+      alert("Avaliação cadastrada com sucesso!");
+    });
+  }
+
   // --- INITIALIZATION ---
   document.addEventListener('DOMContentLoaded', () => {
     renderPublicView();
     setTimeout(initMap, 500);
+
+    // Auto-open review modal if ?avaliar=... or ?review=... is in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const reviewParam = urlParams.get('avaliar') || urlParams.get('review');
+    if (reviewParam) {
+      setTimeout(() => {
+        window.appOpenReviewModal(reviewParam);
+      }, 300);
+    }
   });
 
 })();

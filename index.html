@@ -56,8 +56,8 @@
         <h1 class="property-title" id="display-title">Chácara Vista Vida — Lazer, Conforto e Natureza</h1>
         <div class="property-meta">
           <div class="meta-badges">
-            <span class="badge-rating">
-              <span style="color: #ff385c;">★</span> <strong id="rating-score">4.98</strong> (<span id="reviews-count">42</span> avaliações)
+            <span class="badge-rating" id="header-rating-badge">
+              <span style="color: #ff385c;">★</span> <strong id="rating-score">Novo</strong> <span id="reviews-count-wrapper">(Sem avaliações ainda)</span>
             </span>
             <span>•</span>
             <span class="badge-superhost">🏆 Preferido dos Hóspedes</span>
@@ -212,9 +212,14 @@
 
           <!-- Guest Reviews -->
           <section class="section-divider" id="avaliacoes">
-            <div style="display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1.25rem;">
-              <h2>Avaliações de Hóspedes</h2>
-              <span style="font-size: 1.1rem; font-weight: 700;">★ 4.98 • 42 avaliações</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem;">
+              <div>
+                <h2>Avaliações de Hóspedes</h2>
+                <span id="section-reviews-summary" style="font-size: 1rem; font-weight: 700; color: var(--gray-700);">★ Novo • Sem avaliações ainda</span>
+              </div>
+              <button class="btn-meta" id="btn-open-guest-review" style="border-color: var(--forest-green); color: var(--forest-green); font-weight: 600;">
+                ⭐ Deixar uma Avaliação
+              </button>
             </div>
             
             <div id="reviews-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
@@ -240,8 +245,8 @@
               <div class="booking-price">
                 <span id="card-price-display">R$ 850</span> <span>/ diária</span>
               </div>
-              <div style="font-size: 0.85rem; color: var(--forest-green); font-weight: 600;">
-                ★ 4.98 (42)
+              <div id="card-rating-display" style="font-size: 0.85rem; color: var(--forest-green); font-weight: 600;">
+                ★ Novo
               </div>
             </div>
 
@@ -457,6 +462,55 @@
   </div>
 
   <!-- ========================================================================
+       MODAL: AVALIAÇÃO DO HÓSPEDE (LINK EXCLUSIVO OU PÚBLICO)
+       ======================================================================== -->
+  <div class="modal-overlay" id="modal-guest-review">
+    <div class="modal-content">
+      <button class="modal-close" id="btn-close-review-modal">&times;</button>
+      <h3 style="margin-bottom: 0.5rem;">Avaliar Estadia na Chácara Vista Vida</h3>
+      <p style="font-size: 0.85rem; color: var(--gray-500); margin-bottom: 1.25rem;">
+        Sua opinião é fundamental para mantermos a qualidade do espaço e orientar futuros hóspedes!
+      </p>
+
+      <form id="form-guest-review">
+        <input type="hidden" id="review-booking-id">
+
+        <div class="form-group">
+          <label class="form-label">Seu Nome Completo *</label>
+          <input type="text" class="form-input" id="review-author" required placeholder="Ex: Mariana Albuquerque">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Mês / Ano da sua Estadia *</label>
+          <input type="text" class="form-input" id="review-date" required placeholder="Ex: Outubro 2026">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Sua Nota Geral *</label>
+          <div class="star-rating-picker" id="star-picker">
+            <button type="button" class="star-btn" data-rating="1" title="1 estrela - Muito ruim">★</button>
+            <button type="button" class="star-btn" data-rating="2" title="2 estrelas - Ruim">★</button>
+            <button type="button" class="star-btn" data-rating="3" title="3 estrelas - Regular">★</button>
+            <button type="button" class="star-btn" data-rating="4" title="4 estrelas - Muito bom">★</button>
+            <button type="button" class="star-btn active" data-rating="5" title="5 estrelas - Excelente">★</button>
+            <span id="star-rating-label" style="font-size: 0.9rem; font-weight: 600; color: #ff385c; margin-left: 0.5rem;">5.0 (Excelente!)</span>
+          </div>
+          <input type="hidden" id="review-rating" value="5">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Seu Comentário / Experiência *</label>
+          <textarea class="form-textarea" rows="4" id="review-comment" required placeholder="Conte como foi sua estadia, o que mais gostou (piscina, limpeza, atendimento, estrutura)..."></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem;">
+          ⭐ Publicar Avaliação
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================
        ADMIN CMS VIEW (PAINEL DO PROPRIETÁRIO)
        ======================================================================== -->
   <section id="admin-view" class="admin-view">
@@ -479,6 +533,7 @@
       <!-- Admin Tabs Navigation -->
       <div class="admin-nav-tabs">
         <button class="admin-tab active" data-admin-tab="reservas">📋 Reservas & Aprovações (<span id="admin-pending-badge">0</span>)</button>
+        <button class="admin-tab" data-admin-tab="avaliacoes">⭐ Avaliações (<span id="admin-reviews-badge">0</span>)</button>
         <button class="admin-tab" data-admin-tab="calendario">📅 Bloqueio de Datas</button>
         <button class="admin-tab" data-admin-tab="precos">💰 Tabela de Preços</button>
         <button class="admin-tab" data-admin-tab="imovel">🏡 Dados do Imóvel & Vídeo</button>
@@ -511,6 +566,49 @@
                 <!-- Injected by app.js -->
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Content: Gestão de Avaliações & Link do Hóspede -->
+      <div class="admin-tab-pane" id="pane-avaliacoes" style="display: none;">
+        <div class="admin-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+              <h3 style="margin-bottom: 0.25rem;">Gestão de Avaliações & Indicador</h3>
+              <p style="font-size: 0.85rem; color: var(--gray-500);">Acompanhe as avaliações recebidas e envie links para os locatários.</p>
+            </div>
+            <div style="background: var(--gray-100); padding: 0.6rem 1.2rem; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 1.5rem;">
+              <div>
+                <span style="font-size: 0.75rem; color: var(--gray-500); display: block;">Média Geral:</span>
+                <strong style="font-size: 1.2rem; color: #ff385c;" id="admin-reviews-avg">★ Novo</strong>
+              </div>
+              <div>
+                <span style="font-size: 0.75rem; color: var(--gray-500); display: block;">Total Recebidas:</span>
+                <strong style="font-size: 1.2rem; color: var(--dark);" id="admin-reviews-total">0</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gerador Rápido de Link de Avaliação -->
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.5rem;">
+            <h4 style="color: var(--forest-dark); margin-bottom: 0.4rem;">🔗 Link Direto de Avaliação para Hóspedes</h4>
+            <p style="font-size: 0.85rem; color: var(--gray-700); margin-bottom: 0.75rem;">
+              Envie este link para hóspedes pós-estadia para que eles avaliem o imóvel diretamente pelo celular ou computador:
+            </p>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+              <input type="text" class="form-input" id="quick-review-link" readonly style="flex: 2; min-width: 250px; background: white;" value="https://lucasmachiorint-commits.github.io/Vista-Vida/?avaliar=geral">
+              <button class="btn-meta" id="btn-copy-review-link" style="border-color: var(--forest-green); color: var(--forest-green); font-weight: 600;">📋 Copiar Link</button>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <h4>Avaliações Recebidas</h4>
+            <button class="btn-meta" id="btn-admin-add-review" style="font-size: 0.8rem;">+ Inserir Avaliação Manual</button>
+          </div>
+
+          <div id="admin-reviews-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <!-- Injected by app.js -->
           </div>
         </div>
       </div>
