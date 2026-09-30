@@ -1,4 +1,4 @@
-﻿name: Deploy to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
@@ -23,6 +23,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Cache Bust (auto-version CSS & JS)
+        run: |
+          STAMP=$(date +%Y%m%d_%H%M%S)
+          sed -i "s|style.css?v=[^\"]*|style.css?v=${STAMP}|g" index.html
+          sed -i "s|app.js?v=[^\"]*|app.js?v=${STAMP}|g" index.html
+          echo "Cache bust applied: v=${STAMP}"
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

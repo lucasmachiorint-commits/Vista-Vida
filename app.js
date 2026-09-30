@@ -6,6 +6,124 @@
   'use strict';
 
   // ==========================================================================
+  // SUPABASE REALTIME SYNC ENGINE
+  // ==========================================================================
+  const SUPABASE_URL = 'https://ywgoopsmwfmicxahtyct.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3Z29vcHNtd2ZtaWN4YWh0eWN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4MDIyNjUsImV4cCI6MjEwNjM3ODI2NX0.1ofSimX4SByzPvHJjrCqyVSPxINUD_Kc6AfMjG1Xm6M';
+
+  let supabaseClient = null;
+  let _supabaseSyncBusy = false; // prevents re-entrant sync loops
+
+  function initSupabase() {
+    try {
+      if (typeof supabase !== 'undefined' && supabase.createClient) {
+        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('[Supabase] Cliente inicializado com sucesso.');
+      } else {
+        console.warn('[Supabase] SDK não carregado. Funcionando apenas com localStorage.');
+      }
+    } catch (e) {
+      console.warn('[Supabase] Falha ao inicializar:', e.message);
+    }
+  }
+
+  // Fetch state from Supabase (returns null if unavailable)
+  async function supabaseFetchState() {
+    if (!supabaseClient) return null;
+    try {
+      const { data, error } = await supabaseClient
+        .from('site_state')
+        .select('data')
+        .eq('id', 1)
+        .maybeSingle();
+      if (error) { console.warn('[Supabase] Erro ao buscar:', error.message); return null; }
+      return data ? data.data : null;
+    } catch (e) {
+      console.warn('[Supabase] Fetch falhou:', e.message);
+      return null;
+    }
+  }
+
+  // Save state to Supabase (upsert)
+  async function supabaseSaveState(stateObj) {
+    if (!supabaseClient || _supabaseSyncBusy) return;
+    try {
+      const { error } = await supabaseClient
+        .from('site_state')
+        .upsert({ id: 1, data: stateObj, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+      if (error) console.warn('[Supabase] Erro ao salvar:', error.message);
+      else console.log('[Supabase] Estado salvo com sucesso.');
+    } catch (e) {
+      console.warn('[Supabase] Save falhou:', e.message);
+    }
+  }
+
+  // Subscribe to real-time changes and auto-refresh UI
+  function supabaseSubscribeRealtime() {
+    if (!supabaseClient) return;
+    supabaseClient
+      .channel('site_state_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_state' }, (payload) => {
+        console.log('[Supabase] Atualização em tempo real recebida.');
+        if (payload.new && payload.new.data) {
+          _supabaseSyncBusy = true;
+          // Deobfuscate booking data in-memory (same logic as loadState)
+          const remoteState = payload.new.data;
+          if (remoteState.bookings && Array.isArray(remoteState.bookings)) {
+            remoteState.bookings.forEach(b => {
+              if (b.cpf) b.cpf = deobfuscateField(b.cpf);
+              if (b.phone) b.phone = deobfuscateField(b.phone);
+              if (b.email) b.email = deobfuscateField(b.email);
+            });
+          }
+          // Update global state and re-render
+          Object.assign(state, remoteState);
+          saveState(state); // cache locally
+          try { renderPublicView(); } catch(e) {}
+          try { if (document.getElementById('admin-panel') && document.getElementById('admin-panel').style.display !== 'none') renderAdminView(); } catch(e) {}
+          _supabaseSyncBusy = false;
+        }
+      })
+      .subscribe((status) => {
+        console.log('[Supabase] Realtime status:', status);
+      });
+  }
+
+  // Initial sync: load from Supabase, or seed Supabase with localStorage data
+  async function supabaseInitialSync() {
+    if (!supabaseClient) return;
+    const remoteData = await supabaseFetchState();
+    if (remoteData) {
+      // Remote has data — use it as source of truth
+      if (remoteData.bookings && Array.isArray(remoteData.bookings)) {
+        remoteData.bookings.forEach(b => {
+          if (b.cpf) b.cpf = deobfuscateField(b.cpf);
+          if (b.phone) b.phone = deobfuscateField(b.phone);
+          if (b.email) b.email = deobfuscateField(b.email);
+        });
+      }
+      Object.assign(state, remoteData);
+      saveState(state); // cache locally
+      renderPublicView();
+      console.log('[Supabase] Dados remotos carregados com sucesso.');
+    } else {
+      // No remote data — seed Supabase with current local state
+      console.log('[Supabase] Nenhum dado remoto encontrado. Enviando dados locais...');
+      const stateClone = JSON.parse(JSON.stringify(state));
+      if (stateClone.bookings && Array.isArray(stateClone.bookings)) {
+        stateClone.bookings.forEach(b => {
+          if (b.cpf) b.cpf = obfuscateField(b.cpf);
+          if (b.phone) b.phone = obfuscateField(b.phone);
+          if (b.email) b.email = obfuscateField(b.email);
+        });
+      }
+      await supabaseSaveState(stateClone);
+    }
+    // Start listening for real-time changes
+    supabaseSubscribeRealtime();
+  }
+
+  // ==========================================================================
   // SECURITY & VALIDATION UTILITIES (OWASP & LGPD COMPLIANCE)
   // ==========================================================================
 
@@ -426,6 +544,8 @@
         });
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stateClone));
+      // Sync to Supabase (async, non-blocking)
+      supabaseSaveState(stateClone);
     } catch (e) {
       console.error("Erro ao persistir dados locais.");
     }
@@ -2684,6 +2804,10 @@
   document.addEventListener('DOMContentLoaded', () => {
     renderPublicView();
     setTimeout(initMap, 500);
+
+    // Initialize Supabase sync
+    initSupabase();
+    supabaseInitialSync();
 
     // Auto-open review modal if ?avaliar=... or ?review=... is in URL
     const urlParams = new URLSearchParams(window.location.search);
