@@ -792,30 +792,74 @@
       <!-- Tab Content 5: Fotos por Ambiente -->
       <div class="admin-tab-pane" id="pane-fotos" style="display: none;">
         <div class="admin-card">
-          <h3 style="margin-bottom: 0.5rem;">Gerenciador de Fotos por Ambiente</h3>
-          <p style="font-size: 0.85rem; color: var(--gray-500); margin-bottom: 1rem;">Adicione links de fotos organizadas por categoria.</p>
-          
-          <form id="form-add-photo" style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem; background: var(--gray-100); padding: 1rem; border-radius: var(--radius-sm);">
-            <div class="form-group" style="flex: 2; min-width: 250px;">
-              <label class="form-label">URL da Imagem</label>
-              <input type="url" class="form-input" id="new-photo-url" required placeholder="https://images.unsplash.com/...">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+              <h3 style="margin-bottom: 0.25rem;">Gerenciador de Fotos por Ambiente</h3>
+              <p style="font-size: 0.85rem; color: var(--gray-500);">Importe fotos direto do seu computador ou celular com otimização automática.</p>
             </div>
-            <div class="form-group" style="flex: 1; min-width: 150px;">
-              <label class="form-label">Ambiente / Categoria</label>
-              <select class="form-select" id="new-photo-cat">
-                <option value="fachada">Fachada & Área Verde</option>
-                <option value="piscina">Piscina & Lazer</option>
-                <option value="churrasqueira">Churrasqueira & Gourmet</option>
-                <option value="quartos">Quartos</option>
-                <option value="interior">Salas & Banheiros</option>
-              </select>
+            <!-- Upload Mode Switcher -->
+            <div class="upload-mode-toggle" id="photo-upload-toggle">
+              <button type="button" class="mode-btn active" id="btn-mode-file">📁 Arquivo do Dispositivo</button>
+              <button type="button" class="mode-btn" id="btn-mode-url">🔗 Link URL da Web</button>
             </div>
-            <div class="form-group" style="flex: 1; min-width: 150px;">
-              <label class="form-label">Legenda</label>
-              <input type="text" class="form-input" id="new-photo-caption" placeholder="Ex: Vista da piscina ao entardecer">
+          </div>
+
+          <form id="form-add-photo" style="background: var(--gray-100); padding: 1.25rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem;">
+            
+            <!-- Mode 1: Direct File Import (Default) -->
+            <div id="wrapper-upload-file" class="upload-mode-section">
+              <input type="file" id="new-photo-file" accept="image/jpeg,image/png,image/webp,image/heic,image/jpg" multiple style="display: none;">
+              
+              <div class="upload-dropzone" id="photo-dropzone">
+                <div class="dropzone-icon">📸</div>
+                <div class="dropzone-title">Clique para selecionar fotos da sua máquina</div>
+                <div class="dropzone-subtitle">ou arraste e solte arquivos de imagem aqui (JPG, PNG, WEBP)</div>
+                <div class="dropzone-badge">⚡ Otimização automática para alta velocidade de carregamento</div>
+              </div>
+
+              <!-- File Preview Container -->
+              <div id="photo-preview-box" style="display: none; margin-top: 1rem; padding: 0.75rem; background: var(--white); border-radius: var(--radius-sm); border: 1px solid var(--gray-300);">
+                <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                  <img id="photo-preview-img" src="" alt="Prévia" style="width: 100px; height: 75px; object-fit: cover; border-radius: 4px; box-shadow: var(--shadow-sm);">
+                  <div style="flex: 1; min-width: 200px;">
+                    <strong id="photo-preview-name" style="font-size: 0.9rem; color: var(--dark); display: block; word-break: break-all;">imagem.jpg</strong>
+                    <span id="photo-preview-info" style="font-size: 0.8rem; color: var(--gray-500);">Otimizada e pronta para importação</span>
+                  </div>
+                  <button type="button" id="btn-clear-photo-file" class="btn-meta" style="color: red; border-color: #fca5a5; font-size: 0.8rem; padding: 0.35rem 0.75rem;">✕ Remover</button>
+                </div>
+              </div>
             </div>
-            <div style="align-self: flex-end; margin-bottom: 1rem;">
-              <button type="submit" class="btn-primary">+ Adicionar Foto</button>
+
+            <!-- Mode 2: External Web URL (Optional) -->
+            <div id="wrapper-upload-url" class="upload-mode-section" style="display: none;">
+              <div class="form-group">
+                <label class="form-label">URL da Imagem na Web</label>
+                <input type="url" class="form-input" id="new-photo-url" placeholder="https://images.unsplash.com/... ou https://...">
+              </div>
+            </div>
+
+            <!-- Metadata: Category & Caption -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin-top: 1rem;">
+              <div class="form-group">
+                <label class="form-label">Ambiente / Categoria *</label>
+                <select class="form-select" id="new-photo-cat">
+                  <option value="fachada">Fachada & Área Verde</option>
+                  <option value="piscina">Piscina & Lazer</option>
+                  <option value="churrasqueira">Churrasqueira & Gourmet</option>
+                  <option value="quartos">Quartos</option>
+                  <option value="interior">Salas & Banheiros</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Legenda da Foto (Opcional)</label>
+                <input type="text" class="form-input" id="new-photo-caption" placeholder="Ex: Piscina climatizada com cascata">
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+              <button type="submit" class="btn-primary" id="btn-submit-add-photo" style="padding: 0.7rem 1.75rem;">
+                + Importar Foto para a Chácara
+              </button>
             </div>
           </form>
 
@@ -914,8 +958,13 @@
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
               <div class="form-group">
-                <label class="form-label">URL da Imagem</label>
-                <input type="url" class="form-input" id="rec-img" placeholder="https://...">
+                <label class="form-label">Foto do Local (Arquivo do Dispositivo ou URL)</label>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                  <input type="file" id="rec-img-file" accept="image/*" style="display: none;">
+                  <button type="button" class="btn-meta" id="btn-pick-rec-img" style="font-size: 0.8rem; padding: 0.55rem 0.85rem; white-space: nowrap;">📁 Do Dispositivo</button>
+                  <input type="text" class="form-input" id="rec-img" placeholder="Ou cole a URL aqui..." style="font-size: 0.85rem;">
+                </div>
+                <span id="rec-img-filename" style="font-size: 0.75rem; color: var(--forest-green); display: none; margin-top: 0.25rem;"></span>
               </div>
               <div class="form-group">
                 <label class="form-label">Link do Google Maps</label>

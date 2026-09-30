@@ -21,11 +21,11 @@
       .replace(/'/g, '&#039;');
   }
 
-  // 2. Safe URL Sanitizer (prevents javascript: / vbscript: execution)
+  // 2. Safe URL Sanitizer (prevents javascript: / vbscript: execution while allowing safe image data URLs)
   function sanitizeUrl(url) {
     if (!url || typeof url !== 'string') return '#';
     const trimmed = url.trim();
-    if (/^(https?:\/\/|mailto:|tel:)/i.test(trimmed)) {
+    if (/^(https?:\/\/|mailto:|tel:|data:image\/(jpeg|png|webp|gif|jpg|svg\+xml);base64,)/i.test(trimmed)) {
       return trimmed;
     }
     return '#';
@@ -153,6 +153,51 @@
     } catch {
       return str;
     }
+  }
+
+  // 11. Client-Side Image Compression & Optimization (Canvas Engine)
+  function compressAndProcessImage(file, maxWidth = 1400, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+      if (!file || !file.type.startsWith('image/')) {
+        return reject(new Error("O arquivo selecionado não é uma imagem válida."));
+      }
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("Erro ao ler o arquivo de imagem do dispositivo."));
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onerror = () => reject(new Error("Erro ao carregar o conteúdo da imagem."));
+        img.onload = function() {
+          let width = img.width;
+          let height = img.height;
+
+          // Scale down proportionally if larger than maxWidth
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Export compressed JPEG Data URL
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          const sizeKb = Math.round(dataUrl.length * 0.75 / 1024);
+
+          resolve({
+            dataUrl,
+            width,
+            height,
+            sizeKb,
+            originalName: file.name
+          });
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
   }
 
   // --- DEFAULT MOCK DATA STORE ---
@@ -515,14 +560,14 @@
 
     let html = `
       <div class="mosaic-item mosaic-hero" onclick="window.appOpenGallery('todos')">
-        <img src="${hero.url}" alt="${hero.caption || 'Foto principal'}" loading="lazy">
+        <img src="${sanitizeUrl(hero.url)}" alt="${escapeHTML(hero.caption || 'Foto principal')}" loading="lazy">
       </div>
     `;
 
     rest.forEach((p, idx) => {
       html += `
-        <div class="mosaic-item" onclick="window.appOpenGallery('${p.category}')">
-          <img src="${p.url}" alt="${p.caption || 'Foto ' + (idx + 2)}" loading="lazy">
+        <div class="mosaic-item" onclick="window.appOpenGallery('${escapeHTML(p.category)}')">
+          <img src="${sanitizeUrl(p.url)}" alt="${escapeHTML(p.caption || 'Foto ' + (idx + 2))}" loading="lazy">
         </div>
       `;
     });
@@ -1300,8 +1345,8 @@
     const filtered = (cat === 'todos') ? state.photos : state.photos.filter(p => p.category === cat);
     grid.innerHTML = filtered.map(p => `
       <div style="border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm);">
-        <img src="${p.url}" alt="${p.caption}" style="width: 100%; height: 180px; object-fit: cover; display: block;" loading="lazy">
-        <div style="padding: 0.5rem; font-size: 0.8rem; background: var(--gray-100);">${p.caption || 'Foto da propriedade'}</div>
+        <img src="${sanitizeUrl(p.url)}" alt="${escapeHTML(p.caption)}" style="width: 100%; height: 180px; object-fit: cover; display: block;" loading="lazy">
+        <div style="padding: 0.5rem; font-size: 0.8rem; background: var(--gray-100);">${escapeHTML(p.caption || 'Foto da propriedade')}</div>
       </div>
     `).join('');
 
@@ -1634,21 +1679,211 @@
     alert("Dados do imóvel atualizados com sucesso!");
   });
 
-  // Admin: Add Photo
+  // ==========================================================================
+  // ADMIN: PHOTO MANAGER (DIRECT FILE IMPORT & COMPRESSION ENGINE)
+  // ==========================================================================
+  let photoUploadMode = 'file'; // 'file' | 'url'
+  let stagedPhotoFiles = []; // Holds compressed image results: [{ dataUrl, originalName, sizeKb }]
+
+  const btnModeFile = document.getElementById('btn-mode-file');
+  const btnModeUrl = document.getElementById('btn-mode-url');
+  const wrapperUploadFile = document.getElementById('wrapper-upload-file');
+  const wrapperUploadUrl = document.getElementById('wrapper-upload-url');
+  const photoDropzone = document.getElementById('photo-dropzone');
+  const newPhotoFileInput = document.getElementById('new-photo-file');
+  const photoPreviewBox = document.getElementById('photo-preview-box');
+  const photoPreviewImg = document.getElementById('photo-preview-img');
+  const photoPreviewName = document.getElementById('photo-preview-name');
+  const photoPreviewInfo = document.getElementById('photo-preview-info');
+  const btnClearPhotoFile = document.getElementById('btn-clear-photo-file');
+  const btnSubmitAddPhoto = document.getElementById('btn-submit-add-photo');
+
+  // Mode Switcher Buttons
+  if (btnModeFile && btnModeUrl) {
+    btnModeFile.addEventListener('click', () => {
+      photoUploadMode = 'file';
+      btnModeFile.classList.add('active');
+      btnModeUrl.classList.remove('active');
+      if (wrapperUploadFile) wrapperUploadFile.style.display = 'block';
+      if (wrapperUploadUrl) wrapperUploadUrl.style.display = 'none';
+      if (btnSubmitAddPhoto) btnSubmitAddPhoto.textContent = '+ Importar Foto do Dispositivo';
+    });
+
+    btnModeUrl.addEventListener('click', () => {
+      photoUploadMode = 'url';
+      btnModeUrl.classList.add('active');
+      btnModeFile.classList.remove('active');
+      if (wrapperUploadFile) wrapperUploadFile.style.display = 'none';
+      if (wrapperUploadUrl) wrapperUploadUrl.style.display = 'block';
+      if (btnSubmitAddPhoto) btnSubmitAddPhoto.textContent = '+ Adicionar Foto via Link';
+    });
+  }
+
+  // Click Dropzone to open native File Picker
+  if (photoDropzone && newPhotoFileInput) {
+    photoDropzone.addEventListener('click', () => {
+      newPhotoFileInput.click();
+    });
+
+    // Drag & Drop Interactions
+    ['dragenter', 'dragover'].forEach(eventName => {
+      photoDropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        photoDropzone.classList.add('dragover');
+      });
+    });
+
+    ['dragleave', 'dragend'].forEach(eventName => {
+      photoDropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        photoDropzone.classList.remove('dragover');
+      });
+    });
+
+    photoDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      photoDropzone.classList.remove('dragover');
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleIncomingPhotoFiles(e.dataTransfer.files);
+      }
+    });
+
+    newPhotoFileInput.addEventListener('change', function() {
+      if (this.files && this.files.length > 0) {
+        handleIncomingPhotoFiles(this.files);
+      }
+    });
+  }
+
+  // Process and Compress files selected from machine
+  async function handleIncomingPhotoFiles(filesList) {
+    const files = Array.from(filesList).filter(f => f.type.startsWith('image/'));
+    if (files.length === 0) {
+      alert("Por favor, selecione arquivos de imagem válidos (JPG, PNG, WEBP).");
+      return;
+    }
+
+    stagedPhotoFiles = [];
+    if (photoPreviewBox) photoPreviewBox.style.display = 'block';
+    if (photoPreviewName) photoPreviewName.textContent = `Otimizando ${files.length} foto(s)...`;
+    if (photoPreviewInfo) photoPreviewInfo.textContent = 'Aguarde a compressão automática...';
+
+    try {
+      for (const file of files) {
+        const compressed = await compressAndProcessImage(file, 1400, 0.82);
+        stagedPhotoFiles.push(compressed);
+      }
+
+      if (stagedPhotoFiles.length === 1) {
+        const single = stagedPhotoFiles[0];
+        if (photoPreviewImg) photoPreviewImg.src = single.dataUrl;
+        if (photoPreviewName) photoPreviewName.textContent = single.originalName;
+        if (photoPreviewInfo) {
+          photoPreviewInfo.textContent = `✓ Foto pronta: ${single.width}x${single.height}px • ~${single.sizeKb} KB (Otimizada)`;
+          photoPreviewInfo.style.color = 'var(--forest-green)';
+        }
+
+        // Auto-fill caption if empty
+        const captionInput = document.getElementById('new-photo-caption');
+        if (captionInput && !captionInput.value.trim()) {
+          const cleanName = single.originalName.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+          captionInput.value = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+        }
+      } else {
+        const first = stagedPhotoFiles[0];
+        const totalSize = stagedPhotoFiles.reduce((acc, cur) => acc + cur.sizeKb, 0);
+        if (photoPreviewImg) photoPreviewImg.src = first.dataUrl;
+        if (photoPreviewName) photoPreviewName.textContent = `${stagedPhotoFiles.length} fotos prontas para importar`;
+        if (photoPreviewInfo) {
+          photoPreviewInfo.textContent = `✓ Pacote com ${stagedPhotoFiles.length} imagens • Total: ~${totalSize} KB`;
+          photoPreviewInfo.style.color = 'var(--forest-green)';
+        }
+      }
+    } catch (err) {
+      alert("Erro ao processar imagem: " + err.message);
+      clearStagedPhotoFiles();
+    }
+  }
+
+  function clearStagedPhotoFiles() {
+    stagedPhotoFiles = [];
+    if (newPhotoFileInput) newPhotoFileInput.value = '';
+    if (photoPreviewBox) photoPreviewBox.style.display = 'none';
+    if (photoPreviewImg) photoPreviewImg.src = '';
+  }
+
+  if (btnClearPhotoFile) {
+    btnClearPhotoFile.addEventListener('click', clearStagedPhotoFiles);
+  }
+
+  // Admin: Submit Add Photo (Handles both local file import & URL link)
   document.getElementById('form-add-photo').addEventListener('submit', function(e) {
     e.preventDefault();
-    const url = document.getElementById('new-photo-url').value.trim();
     const category = document.getElementById('new-photo-cat').value;
-    const caption = document.getElementById('new-photo-caption').value.trim();
+    const baseCaption = document.getElementById('new-photo-caption').value.trim();
 
-    const newId = (state.photos.length > 0) ? Math.max(...state.photos.map(p => p.id)) + 1 : 1;
-    state.photos.push({ id: newId, url, category, caption });
-    saveState(state);
+    if (photoUploadMode === 'file') {
+      if (stagedPhotoFiles.length === 0) {
+        alert("Por favor, selecione uma foto do seu dispositivo clicando na caixa de upload antes de prosseguir.");
+        return;
+      }
 
-    this.reset();
-    renderAdminPhotos();
-    renderPhotoMosaic();
-    alert("Foto adicionada com sucesso!");
+      // Add all staged photos (supports single or multi-import)
+      stagedPhotoFiles.forEach((item, index) => {
+        const newId = (state.photos.length > 0) ? Math.max(...state.photos.map(p => p.id)) + 1 : 1;
+        let caption = baseCaption;
+        if (!caption) {
+          caption = item.originalName.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+          caption = caption.charAt(0).toUpperCase() + caption.slice(1);
+        } else if (stagedPhotoFiles.length > 1) {
+          caption = `${baseCaption} (${index + 1})`;
+        }
+
+        state.photos.push({
+          id: newId,
+          url: item.dataUrl,
+          category: category,
+          caption: caption
+        });
+      });
+
+      try {
+        saveState(state);
+      } catch (err) {
+        alert("Aviso de memória: O armazenamento local está cheio. Tente remover fotos antigas antes de adicionar novas.");
+        return;
+      }
+
+      const count = stagedPhotoFiles.length;
+      clearStagedPhotoFiles();
+      this.reset();
+      renderAdminPhotos();
+      renderPhotoMosaic();
+      alert(`🎉 ${count} foto(s) importada(s) com sucesso da sua máquina para o site!`);
+
+    } else {
+      // URL Mode
+      const url = document.getElementById('new-photo-url').value.trim();
+      if (!url) {
+        alert("Por favor, informe a URL da foto na Web.");
+        return;
+      }
+      const newId = (state.photos.length > 0) ? Math.max(...state.photos.map(p => p.id)) + 1 : 1;
+      state.photos.push({
+        id: newId,
+        url: url,
+        category: category,
+        caption: baseCaption || 'Foto da propriedade'
+      });
+      saveState(state);
+      this.reset();
+      renderAdminPhotos();
+      renderPhotoMosaic();
+      alert("Foto adicionada via link com sucesso!");
+    }
   });
 
   // Admin: Add Rule
@@ -1754,6 +1989,38 @@
     });
   }
 
+  // Admin: Recommendation Image Picker from Device
+  const btnPickRecImg = document.getElementById('btn-pick-rec-img');
+  const recImgFileInput = document.getElementById('rec-img-file');
+  const recImgInput = document.getElementById('rec-img');
+  const recImgFilename = document.getElementById('rec-img-filename');
+
+  if (btnPickRecImg && recImgFileInput) {
+    btnPickRecImg.addEventListener('click', () => {
+      recImgFileInput.click();
+    });
+
+    recImgFileInput.addEventListener('change', async function() {
+      if (this.files && this.files[0]) {
+        const file = this.files[0];
+        try {
+          if (recImgFilename) {
+            recImgFilename.style.display = 'block';
+            recImgFilename.textContent = 'Otimizando foto...';
+          }
+          const compressed = await compressAndProcessImage(file, 800, 0.8);
+          if (recImgInput) recImgInput.value = compressed.dataUrl;
+          if (recImgFilename) {
+            recImgFilename.textContent = `✓ Foto pronta da máquina: ${file.name} (~${compressed.sizeKb} KB)`;
+            recImgFilename.style.color = 'var(--forest-green)';
+          }
+        } catch (err) {
+          alert("Erro ao processar foto: " + err.message);
+        }
+      }
+    });
+  }
+
   // Admin: Add Recommendation
   document.getElementById('form-add-rec').addEventListener('submit', function(e) {
     e.preventDefault();
@@ -1769,6 +2036,8 @@
     saveState(state);
 
     this.reset();
+    if (recImgFileInput) recImgFileInput.value = '';
+    if (recImgFilename) recImgFilename.style.display = 'none';
     renderAdminRecommendations();
     renderRecommendations('todos');
     alert("Recomendação cadastrada com sucesso!");
