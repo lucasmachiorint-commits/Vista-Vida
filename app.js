@@ -198,6 +198,71 @@
       };
       reader.readAsDataURL(file);
     });
+  // 12. IndexedDB Media Storage Engine (Supports Gigabytes of Video Blobs & High-Res Media)
+  const IDB_NAME = 'ChacaraVistaVidaMediaDB';
+  const IDB_STORE = 'media_blobs';
+
+  function openMediaDB() {
+    return new Promise((resolve, reject) => {
+      if (!window.indexedDB) {
+        return reject(new Error("IndexedDB não suportado"));
+      }
+      const request = indexedDB.open(IDB_NAME, 1);
+      request.onupgradeneeded = function(e) {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(IDB_STORE)) {
+          db.createObjectStore(IDB_STORE);
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function saveMediaBlob(key, blobData) {
+    try {
+      const db = await openMediaDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        const store = tx.objectStore(IDB_STORE);
+        store.put(blobData, key);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => reject(tx.error);
+      });
+    } catch (e) {
+      console.warn("IndexedDB indisponível:", e);
+      return false;
+    }
+  }
+
+  async function getMediaBlob(key) {
+    try {
+      const db = await openMediaDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readonly');
+        const store = tx.objectStore(IDB_STORE);
+        const req = store.get(key);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function deleteMediaBlob(key) {
+    try {
+      const db = await openMediaDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        const store = tx.objectStore(IDB_STORE);
+        store.delete(key);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => reject(tx.error);
+      });
+    } catch (e) {
+      return false;
+    }
   }
 
   // --- DEFAULT MOCK DATA STORE ---
@@ -212,6 +277,8 @@
       bathrooms: 5,
       parking: 10,
       videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+      videoType: "url",
+      videoFileName: "",
       address: "Estrada José Maria Tonelli, 1720, Socorro - SP, CEP 13960-000",
       shortAddress: "Socorro, São Paulo - Brasil",
       lat: -22.6929619,
@@ -1093,16 +1160,49 @@
     document.getElementById('price-deposit').value = state.prices.securityDeposit;
   }
 
-  function renderAdminPropertyForm() {
-    document.getElementById('admin-prop-name').value = state.property.name;
-    document.getElementById('admin-prop-title').value = state.property.title;
-    document.getElementById('admin-prop-desc').value = state.property.description;
-    document.getElementById('admin-prop-sleep').value = state.property.sleeps;
-    document.getElementById('admin-prop-events').value = state.property.events;
-    document.getElementById('admin-prop-bedrooms').value = state.property.bedrooms;
-    document.getElementById('admin-prop-bathrooms').value = state.property.bathrooms;
-    document.getElementById('admin-prop-parking').value = state.property.parking;
-    document.getElementById('admin-prop-video').value = state.property.videoUrl;
+  async function renderAdminPropertyForm() {
+    document.getElementById('admin-prop-name').value = state.property.name || '';
+    document.getElementById('admin-prop-title').value = state.property.title || '';
+    document.getElementById('admin-prop-desc').value = state.property.description || '';
+    document.getElementById('admin-prop-sleep').value = state.property.sleeps || 0;
+    document.getElementById('admin-prop-events').value = state.property.events || 0;
+    document.getElementById('admin-prop-bedrooms').value = state.property.bedrooms || 0;
+    document.getElementById('admin-prop-bathrooms').value = state.property.bathrooms || 0;
+    document.getElementById('admin-prop-parking').value = state.property.parking || 0;
+    document.getElementById('admin-prop-video').value = state.property.videoUrl || '';
+
+    // Check video state (Device File vs YouTube URL)
+    const btnVideoFile = document.getElementById('btn-video-mode-file');
+    const btnVideoUrl = document.getElementById('btn-video-mode-url');
+    const wrapVideoFile = document.getElementById('wrapper-video-file');
+    const wrapVideoUrl = document.getElementById('wrapper-video-url');
+    const previewBox = document.getElementById('video-preview-box');
+    const previewVideo = document.getElementById('admin-video-preview');
+    const previewName = document.getElementById('video-preview-name');
+    const previewInfo = document.getElementById('video-preview-info');
+
+    if (state.property.videoType === 'file') {
+      if (btnVideoFile) btnVideoFile.classList.add('active');
+      if (btnVideoUrl) btnVideoUrl.classList.remove('active');
+      if (wrapVideoFile) wrapVideoFile.style.display = 'block';
+      if (wrapVideoUrl) wrapVideoUrl.style.display = 'none';
+
+      const existingBlob = await getMediaBlob('chacara_video_tour');
+      if (existingBlob && previewBox && previewVideo) {
+        previewVideo.src = URL.createObjectURL(existingBlob);
+        if (previewName) previewName.textContent = state.property.videoFileName || 'Vídeo da Chácara';
+        if (previewInfo) {
+          const sizeMb = (existingBlob.size / (1024 * 1024)).toFixed(1);
+          previewInfo.textContent = `✓ Vídeo salvo no dispositivo (~${sizeMb} MB)`;
+        }
+        previewBox.style.display = 'block';
+      }
+    } else {
+      if (btnVideoUrl) btnVideoUrl.classList.add('active');
+      if (btnVideoFile) btnVideoFile.classList.remove('active');
+      if (wrapVideoFile) wrapVideoFile.style.display = 'none';
+      if (wrapVideoUrl) wrapVideoUrl.style.display = 'block';
+    }
   }
 
   function renderAdminPhotos() {
@@ -1427,15 +1527,64 @@
     });
   });
 
-  // Video Tour Modal
-  document.getElementById('btn-watch-video').addEventListener('click', () => {
+  // Video Tour Modal (Supports HTML5 Local Video from Device and YouTube Iframe)
+  document.getElementById('btn-watch-video').addEventListener('click', async () => {
     const iframe = document.getElementById('video-iframe');
-    iframe.src = state.property.videoUrl || "https://www.youtube.com/embed/dQw4w9WgXcQ";
-    document.getElementById('modal-video-tour').classList.add('active');
+    const player = document.getElementById('video-player');
+    const modal = document.getElementById('modal-video-tour');
+
+    // 1. Check if an uploaded video file is configured
+    if (state.property.videoType === 'file') {
+      const blob = await getMediaBlob('chacara_video_tour');
+      if (blob && player) {
+        if (iframe) {
+          iframe.style.display = 'none';
+          iframe.src = '';
+        }
+        player.style.display = 'block';
+        player.src = URL.createObjectURL(blob);
+        modal.classList.add('active');
+        player.play().catch(() => {});
+        return;
+      }
+    }
+
+    // 2. Fallback or YouTube URL Mode
+    if (player) {
+      player.pause();
+      player.style.display = 'none';
+      if (player.src && player.src.startsWith('blob:')) {
+        URL.revokeObjectURL(player.src);
+      }
+      player.src = '';
+    }
+
+    if (iframe) {
+      iframe.style.display = 'block';
+      let url = state.property.videoUrl || "https://www.youtube.com/embed/dQw4w9WgXcQ";
+      if (url.includes('youtube.com/watch?v=')) {
+        url = url.replace('watch?v=', 'embed/');
+      } else if (url.includes('youtu.be/')) {
+        const id = url.split('youtu.be/')[1].split('?')[0];
+        url = `https://www.youtube.com/embed/${id}`;
+      }
+      iframe.src = url;
+    }
+    modal.classList.add('active');
   });
+
   document.getElementById('btn-close-video-modal').addEventListener('click', () => {
     document.getElementById('modal-video-tour').classList.remove('active');
-    document.getElementById('video-iframe').src = "";
+    const iframe = document.getElementById('video-iframe');
+    const player = document.getElementById('video-player');
+    if (iframe) iframe.src = "";
+    if (player) {
+      player.pause();
+      if (player.src && player.src.startsWith('blob:')) {
+        URL.revokeObjectURL(player.src);
+      }
+      player.src = '';
+    }
   });
 
   // Booking Request Modal
@@ -1723,8 +1872,121 @@
     updatePriceAndDisplay();
   });
 
-  // Admin: Save Property Info
-  document.getElementById('form-admin-property').addEventListener('submit', function(e) {
+  // ==========================================================================
+  // ADMIN: VIDEO MANAGER (DIRECT FILE UPLOAD & YOUTUBE TOGGLE)
+  // ==========================================================================
+  let videoUploadMode = 'file';
+  let stagedVideoFile = null;
+
+  const btnVideoModeFile = document.getElementById('btn-video-mode-file');
+  const btnVideoModeUrl = document.getElementById('btn-video-mode-url');
+  const wrapperVideoFile = document.getElementById('wrapper-video-file');
+  const wrapperVideoUrl = document.getElementById('wrapper-video-url');
+  const videoDropzone = document.getElementById('video-dropzone');
+  const adminVideoFileInput = document.getElementById('admin-video-file');
+  const videoPreviewBox = document.getElementById('video-preview-box');
+  const adminVideoPreview = document.getElementById('admin-video-preview');
+  const videoPreviewName = document.getElementById('video-preview-name');
+  const videoPreviewInfo = document.getElementById('video-preview-info');
+  const btnClearVideoFile = document.getElementById('btn-clear-video-file');
+
+  if (btnVideoModeFile && btnVideoModeUrl) {
+    btnVideoModeFile.addEventListener('click', () => {
+      videoUploadMode = 'file';
+      btnVideoModeFile.classList.add('active');
+      btnVideoModeUrl.classList.remove('active');
+      if (wrapperVideoFile) wrapperVideoFile.style.display = 'block';
+      if (wrapperVideoUrl) wrapperVideoUrl.style.display = 'none';
+    });
+
+    btnVideoModeUrl.addEventListener('click', () => {
+      videoUploadMode = 'url';
+      btnVideoModeUrl.classList.add('active');
+      btnVideoModeFile.classList.remove('active');
+      if (wrapperVideoFile) wrapperVideoFile.style.display = 'none';
+      if (wrapperVideoUrl) wrapperVideoUrl.style.display = 'block';
+    });
+  }
+
+  if (videoDropzone && adminVideoFileInput) {
+    videoDropzone.addEventListener('click', () => {
+      adminVideoFileInput.click();
+    });
+
+    ['dragenter', 'dragover'].forEach(evName => {
+      videoDropzone.addEventListener(evName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        videoDropzone.classList.add('dragover');
+      });
+    });
+
+    ['dragleave', 'dragend'].forEach(evName => {
+      videoDropzone.addEventListener(evName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        videoDropzone.classList.remove('dragover');
+      });
+    });
+
+    videoDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      videoDropzone.classList.remove('dragover');
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleIncomingVideoFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    adminVideoFileInput.addEventListener('change', function() {
+      if (this.files && this.files.length > 0) {
+        handleIncomingVideoFile(this.files[0]);
+      }
+    });
+  }
+
+  function handleIncomingVideoFile(file) {
+    if (!file || !file.type.startsWith('video/')) {
+      alert("Por favor, selecione um arquivo de vídeo válido (MP4, WebM, MOV).");
+      return;
+    }
+
+    stagedVideoFile = file;
+    if (adminVideoPreview) {
+      adminVideoPreview.src = URL.createObjectURL(file);
+    }
+    if (videoPreviewName) {
+      videoPreviewName.textContent = file.name;
+    }
+    if (videoPreviewInfo) {
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+      videoPreviewInfo.textContent = `✓ Vídeo pronto para salvar (~${sizeMb} MB)`;
+      videoPreviewInfo.style.color = 'var(--forest-green)';
+    }
+    if (videoPreviewBox) {
+      videoPreviewBox.style.display = 'block';
+    }
+  }
+
+  if (btnClearVideoFile) {
+    btnClearVideoFile.addEventListener('click', async () => {
+      stagedVideoFile = null;
+      if (adminVideoFileInput) adminVideoFileInput.value = '';
+      if (adminVideoPreview) {
+        adminVideoPreview.pause();
+        adminVideoPreview.src = '';
+      }
+      if (videoPreviewBox) videoPreviewBox.style.display = 'none';
+      await deleteMediaBlob('chacara_video_tour');
+      state.property.videoType = 'url';
+      state.property.videoFileName = '';
+      saveState(state);
+      alert("Vídeo removido da máquina. Você pode selecionar outro arquivo ou usar um link do YouTube.");
+    });
+  }
+
+  // Admin: Save Property Info & Media
+  document.getElementById('form-admin-property').addEventListener('submit', async function(e) {
     e.preventDefault();
     state.property.name = document.getElementById('admin-prop-name').value.trim();
     state.property.title = document.getElementById('admin-prop-title').value.trim();
@@ -1734,10 +1996,20 @@
     state.property.bedrooms = Number(document.getElementById('admin-prop-bedrooms').value);
     state.property.bathrooms = Number(document.getElementById('admin-prop-bathrooms').value);
     state.property.parking = Number(document.getElementById('admin-prop-parking').value);
-    state.property.videoUrl = document.getElementById('admin-prop-video').value.trim();
+
+    if (videoUploadMode === 'file') {
+      if (stagedVideoFile) {
+        await saveMediaBlob('chacara_video_tour', stagedVideoFile);
+        state.property.videoType = 'file';
+        state.property.videoFileName = stagedVideoFile.name;
+      }
+    } else {
+      state.property.videoType = 'url';
+      state.property.videoUrl = document.getElementById('admin-prop-video').value.trim();
+    }
 
     saveState(state);
-    alert("Dados do imóvel atualizados com sucesso!");
+    alert("Dados do imóvel e vídeo atualizados com sucesso!");
   });
 
   // ==========================================================================
