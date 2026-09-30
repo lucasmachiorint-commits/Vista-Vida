@@ -1107,17 +1107,78 @@
 
   function renderAdminPhotos() {
     const container = document.getElementById('admin-photos-grid');
-    container.innerHTML = state.photos.map((p, idx) => `
-      <div style="border: 1px solid var(--gray-300); border-radius: var(--radius-sm); overflow: hidden; position: relative;">
-        <img src="${sanitizeUrl(p.url)}" alt="${escapeHTML(p.caption)}" style="width: 100%; height: 120px; object-fit: cover;">
-        <div style="padding: 0.5rem; font-size: 0.75rem;">
-          <strong style="text-transform: capitalize;">${escapeHTML(p.category)}</strong>
-          <div style="color: var(--gray-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHTML(p.caption || 'Sem legenda')}</div>
-          <button onclick="window.appRemovePhoto(${p.id})" style="color: red; margin-top: 0.35rem; font-weight: 600;">Excluir</button>
+    if (!state.photos || state.photos.length === 0) {
+      container.innerHTML = '<div style="grid-column: 1/-1; padding: 2rem; text-align: center; color: var(--gray-500);">Nenhuma foto cadastrada ainda.</div>';
+      return;
+    }
+
+    container.innerHTML = state.photos.map((p, idx) => {
+      const isCover = (idx === 0);
+      return `
+        <div class="admin-photo-card ${isCover ? 'is-cover' : ''}">
+          ${isCover ? '<span class="photo-cover-badge">⭐ CAPA PRINCIPAL</span>' : ''}
+          <img src="${sanitizeUrl(p.url)}" alt="${escapeHTML(p.caption)}" style="width: 100%; height: 130px; object-fit: cover; display: block;" loading="lazy">
+          <div style="padding: 0.6rem; font-size: 0.75rem; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.2rem;">
+                <strong style="text-transform: capitalize; color: var(--dark); font-size: 0.8rem;">${escapeHTML(p.category)}</strong>
+                <span style="font-size: 0.7rem; color: var(--gray-500); font-weight: 600;">#${idx + 1}</span>
+              </div>
+              <div style="color: var(--gray-600); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 0.5rem;" title="${escapeHTML(p.caption || '')}">
+                ${escapeHTML(p.caption || 'Sem legenda')}
+              </div>
+            </div>
+
+            <div style="border-top: 1px solid var(--gray-200); padding-top: 0.5rem; display: flex; flex-direction: column; gap: 0.35rem;">
+              ${isCover ? `
+                <div style="color: var(--forest-dark); font-weight: 700; font-size: 0.75rem; text-align: center; background: #dcfce7; padding: 0.35rem; border-radius: 4px;">
+                  ✓ Foto de Capa (Maior do site)
+                </div>
+              ` : `
+                <button type="button" onclick="window.appSetCoverPhoto(${p.id})" class="btn-meta" style="width: 100%; font-size: 0.75rem; padding: 0.35rem 0.5rem; font-weight: 600; color: var(--forest-dark); border-color: var(--forest-green); background: #f0fdf4;">
+                  ⭐ Tornar Foto de Capa
+                </button>
+              `}
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.2rem;">
+                ${idx > 1 ? `
+                  <button type="button" onclick="window.appMovePhoto(${p.id}, -1)" title="Mover para a esquerda" style="background: none; border: none; font-size: 0.75rem; color: var(--gray-600); cursor: pointer;">◀ Mover</button>
+                ` : '<span></span>'}
+                <button type="button" onclick="window.appRemovePhoto(${p.id})" style="color: red; font-size: 0.75rem; font-weight: 600; background: none; border: none; cursor: pointer; text-decoration: underline;">Excluir</button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
+
+  window.appSetCoverPhoto = function(id) {
+    const index = state.photos.findIndex(p => p.id === id);
+    if (index === -1) return;
+    if (index === 0) {
+      alert("Esta foto já é a foto de capa principal.");
+      return;
+    }
+
+    const [chosen] = state.photos.splice(index, 1);
+    state.photos.unshift(chosen);
+    saveState(state);
+    renderAdminPhotos();
+    renderPhotoMosaic();
+    alert(`⭐ "${chosen.caption || 'Foto'}" definida com sucesso como a Foto de Capa Principal (a primeira e maior do site)!`);
+  };
+
+  window.appMovePhoto = function(id, direction) {
+    const index = state.photos.findIndex(p => p.id === id);
+    if (index === -1) return;
+    const newIndex = index + direction;
+    if (newIndex < 1 || newIndex >= state.photos.length) return; // Keeps cover at index 0
+    const [moved] = state.photos.splice(index, 1);
+    state.photos.splice(newIndex, 0, moved);
+    saveState(state);
+    renderAdminPhotos();
+    renderPhotoMosaic();
+  };
 
   window.appRemovePhoto = function(id) {
     if (confirm("Remover esta foto?")) {
@@ -1819,11 +1880,12 @@
     btnClearPhotoFile.addEventListener('click', clearStagedPhotoFiles);
   }
 
-  // Admin: Submit Add Photo (Handles both local file import & URL link)
+  // Admin: Submit Add Photo (Handles both local file import & URL link, with Cover Photo option)
   document.getElementById('form-add-photo').addEventListener('submit', function(e) {
     e.preventDefault();
     const category = document.getElementById('new-photo-cat').value;
     const baseCaption = document.getElementById('new-photo-caption').value.trim();
+    const isCover = Boolean(document.getElementById('new-photo-is-cover')?.checked);
 
     if (photoUploadMode === 'file') {
       if (stagedPhotoFiles.length === 0) {
@@ -1842,12 +1904,19 @@
           caption = `${baseCaption} (${index + 1})`;
         }
 
-        state.photos.push({
+        const photoObj = {
           id: newId,
           url: item.dataUrl,
           category: category,
           caption: caption
-        });
+        };
+
+        if (isCover && index === 0) {
+          // Put as primary cover (index 0)
+          state.photos.unshift(photoObj);
+        } else {
+          state.photos.push(photoObj);
+        }
       });
 
       try {
@@ -1860,9 +1929,16 @@
       const count = stagedPhotoFiles.length;
       clearStagedPhotoFiles();
       this.reset();
+      const coverCheckbox = document.getElementById('new-photo-is-cover');
+      if (coverCheckbox) coverCheckbox.checked = false;
+
       renderAdminPhotos();
       renderPhotoMosaic();
-      alert(`🎉 ${count} foto(s) importada(s) com sucesso da sua máquina para o site!`);
+      if (isCover) {
+        alert(`🎉 Foto importada e definida como Capa Principal (maior destaque) da Chácara Vista Vida!`);
+      } else {
+        alert(`🎉 ${count} foto(s) importada(s) com sucesso da sua máquina para o site!`);
+      }
 
     } else {
       // URL Mode
@@ -1872,17 +1948,31 @@
         return;
       }
       const newId = (state.photos.length > 0) ? Math.max(...state.photos.map(p => p.id)) + 1 : 1;
-      state.photos.push({
+      const photoObj = {
         id: newId,
         url: url,
         category: category,
         caption: baseCaption || 'Foto da propriedade'
-      });
+      };
+
+      if (isCover) {
+        state.photos.unshift(photoObj);
+      } else {
+        state.photos.push(photoObj);
+      }
+
       saveState(state);
       this.reset();
+      const coverCheckbox = document.getElementById('new-photo-is-cover');
+      if (coverCheckbox) coverCheckbox.checked = false;
+
       renderAdminPhotos();
       renderPhotoMosaic();
-      alert("Foto adicionada via link com sucesso!");
+      if (isCover) {
+        alert("⭐ Foto adicionada e definida como Capa Principal com sucesso!");
+      } else {
+        alert("Foto adicionada via link com sucesso!");
+      }
     }
   });
 

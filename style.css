@@ -1081,3 +1081,44 @@ button {
   padding: 0.2rem 0.6rem;
   border-radius: 20px;
 }
+
+/* Cover Photo Highlight in Admin */
+.photo-cover-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: var(--forest-green);
+  color: var(--white);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  z-index: 2;
+}
+
+.admin-photo-card {
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  position: relative;
+  background: var(--white);
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-photo-card.is-cover {
+  border: 2px solid var(--forest-green);
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.2);
+  background: #f0fdf4;
+}
+
+.admin-photo-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
