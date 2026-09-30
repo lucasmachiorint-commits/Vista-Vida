@@ -6,9 +6,9 @@
   <title>Chácara Vista Vida — Locação por Temporada & Eventos</title>
   <meta name="description" content="Chácara Vista Vida para aluguel por temporada e eventos familiares. Piscina aquecida, churrasqueira, campo de futebol, salão de jogos e acomodação para até 15 pessoas.">
   <!-- Content Security Policy (Anti-XSS & Resource Protection with Media Streaming) -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: blob: https://images.unsplash.com https://*.tile.openstreetmap.org https://maps.google.com https://maps.gstatic.com; media-src 'self' blob: data:; frame-src 'self' https://maps.google.com https://www.google.com https://www.youtube.com; connect-src 'self' https://ywgoopsmwfmicxahtyct.supabase.co; font-src 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: blob: https://images.unsplash.com https://*.tile.openstreetmap.org https://maps.google.com https://maps.gstatic.com; media-src 'self' blob: data:; frame-src 'self' https://maps.google.com https://www.google.com https://www.youtube.com; connect-src 'self' https://ywgoopsmwfmicxahtyct.supabase.co wss://ywgoopsmwfmicxahtyct.supabase.co; font-src 'self';">
 
-  <link rel="stylesheet" href="style.css?v=20260930_1">
+  <link rel="stylesheet" href="style.css?v=20260930_2">
   
   <!-- Leaflet Maps CSS & JS (100% Free / OpenStreetMap) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -608,6 +608,7 @@
         <button class="admin-tab" data-admin-tab="localizacao">📍 Localização & Estrada</button>
         <button class="admin-tab" data-admin-tab="passeios">🎯 Recomendações & Passeios</button>
         <button class="admin-tab" data-admin-tab="faq">❓ FAQ</button>
+        <button class="admin-tab" data-admin-tab="nuvem" style="color: var(--forest-dark); font-weight: 700;">☁️ Nuvem & Sincronização</button>
       </div>
 
       <!-- Tab Content 1: Reservas & Fila de Aprovação -->
@@ -1037,6 +1038,45 @@
         </div>
       </div>
 
+      <!-- Tab Content 10: Sincronização em Nuvem (Supabase) -->
+      <div class="admin-tab-pane" id="pane-nuvem" style="display: none;">
+        <div class="admin-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+              <h3 style="margin-bottom: 0.25rem;">Sincronização em Nuvem & Multi-Proprietário</h3>
+              <p style="font-size: 0.85rem; color: var(--gray-500);">Mantenha todos os computadores, celulares e o site dos clientes sincronizados em tempo real.</p>
+            </div>
+            <div id="supabase-status-badge" style="background: #dcfce7; color: #166534; padding: 0.45rem 1rem; border-radius: 20px; font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem;">
+              <span>🟢</span> Supabase Conectado (Tempo Real)
+            </div>
+          </div>
+
+          <div style="background: var(--gray-100); padding: 1.5rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; border: 1px solid var(--gray-300);">
+            <h4 style="margin-bottom: 0.5rem; color: var(--dark);">Sincronização Direta entre Dispositivos</h4>
+            <p style="font-size: 0.85rem; color: var(--gray-700); margin-bottom: 1.25rem; line-height: 1.5;">
+              Para garantir que as fotos e dados que você cadastrou <strong>neste computador</strong> sejam enviados para o Supabase e fiquem imediatamente visíveis para o seu sócio e em todos os celulares, clique no botão verde abaixo:
+            </p>
+
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+              <button type="button" class="btn-primary" id="btn-force-push-supabase" style="padding: 0.75rem 1.5rem; font-size: 0.9rem;">
+                ⬆️ Enviar Fotos e Dados Deste PC para a Nuvem
+              </button>
+              <button type="button" class="btn-meta" id="btn-force-pull-supabase" style="padding: 0.75rem 1.25rem; font-size: 0.9rem; font-weight: 600;">
+                ⬇️ Puxar Dados Mais Recentes da Nuvem
+              </button>
+            </div>
+          </div>
+
+          <div style="background: #f8fafc; padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--gray-200); font-size: 0.8rem; color: var(--gray-600); line-height: 1.6;">
+            <strong>ℹ️ Como funciona a sincronização automática:</strong>
+            <ul style="margin-top: 0.5rem; padding-left: 1.25rem;">
+              <li>Qualquer alteração feita no painel (novo preço, foto, bloqueio ou aprovação de reserva) é enviada automaticamente para o Supabase.</li>
+              <li>Todos os celulares e computadores conectados recebem as atualizações na hora via WebSockets em tempo real, sem necessidade de atualizar a página.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
     </div>
   </section>
 
@@ -1084,6 +1124,6 @@
   </a>
 
   <!-- Main Application Script (Cache Busted) -->
-  <script src="app.js?v=20260930_1"></script>
+  <script src="app.js?v=20260930_2"></script>
 </body>
 </html>

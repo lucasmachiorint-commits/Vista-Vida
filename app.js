@@ -93,19 +93,39 @@
   async function supabaseInitialSync() {
     if (!supabaseClient) return;
     const remoteData = await supabaseFetchState();
+
+    // Check if local state contains custom uploaded photos (Data URLs or custom uploads)
+    const hasLocalCustomPhotos = state.photos && state.photos.some(p => p.url && (p.url.startsWith('data:image/') || p.url.startsWith('blob:')));
+    const hasRemotePhotos = remoteData && remoteData.photos && Array.isArray(remoteData.photos) && remoteData.photos.length > 0;
+    const remoteHasCustomPhotos = hasRemotePhotos && remoteData.photos.some(p => p.url && (p.url.startsWith('data:image/') || p.url.startsWith('blob:')));
+
     if (remoteData) {
-      // Remote has data — use it as source of truth
-      if (remoteData.bookings && Array.isArray(remoteData.bookings)) {
-        remoteData.bookings.forEach(b => {
-          if (b.cpf) b.cpf = deobfuscateField(b.cpf);
-          if (b.phone) b.phone = deobfuscateField(b.phone);
-          if (b.email) b.email = deobfuscateField(b.email);
-        });
+      // If local state has custom photos and remote does not, keep local photos and update Supabase!
+      if (hasLocalCustomPhotos && !remoteHasCustomPhotos) {
+        console.log('[Supabase] Este computador possui fotos locais customizadas. Sincronizando com o Supabase...');
+        const stateClone = JSON.parse(JSON.stringify(state));
+        if (stateClone.bookings && Array.isArray(stateClone.bookings)) {
+          stateClone.bookings.forEach(b => {
+            if (b.cpf) b.cpf = obfuscateField(b.cpf);
+            if (b.phone) b.phone = obfuscateField(b.phone);
+            if (b.email) b.email = obfuscateField(b.email);
+          });
+        }
+        await supabaseSaveState(stateClone);
+      } else {
+        // Remote has data — use it as source of truth
+        if (remoteData.bookings && Array.isArray(remoteData.bookings)) {
+          remoteData.bookings.forEach(b => {
+            if (b.cpf) b.cpf = deobfuscateField(b.cpf);
+            if (b.phone) b.phone = deobfuscateField(b.phone);
+            if (b.email) b.email = deobfuscateField(b.email);
+          });
+        }
+        Object.assign(state, remoteData);
+        saveState(state); // cache locally
+        renderPublicView();
+        console.log('[Supabase] Dados remotos carregados com sucesso.');
       }
-      Object.assign(state, remoteData);
-      saveState(state); // cache locally
-      renderPublicView();
-      console.log('[Supabase] Dados remotos carregados com sucesso.');
     } else {
       // No remote data — seed Supabase with current local state
       console.log('[Supabase] Nenhum dado remoto encontrado. Enviando dados locais...');
@@ -2538,6 +2558,65 @@
     renderAdminFAQ();
     renderFAQs();
   });
+
+  // Admin: Supabase Cloud Sync Manual Controls
+  const btnForcePush = document.getElementById('btn-force-push-supabase');
+  if (btnForcePush) {
+    btnForcePush.addEventListener('click', async () => {
+      if (!confirm("Deseja sincronizar as fotos e dados DESTE computador com a nuvem do Supabase agora? Isso atualizará o site para seu sócio e todos os celulares.")) return;
+      btnForcePush.disabled = true;
+      btnForcePush.textContent = "⏳ Enviando para a nuvem...";
+      try {
+        const stateClone = JSON.parse(JSON.stringify(state));
+        if (stateClone.bookings && Array.isArray(stateClone.bookings)) {
+          stateClone.bookings.forEach(b => {
+            if (b.cpf) b.cpf = obfuscateField(b.cpf);
+            if (b.phone) b.phone = obfuscateField(b.phone);
+            if (b.email) b.email = obfuscateField(b.email);
+          });
+        }
+        await supabaseSaveState(stateClone);
+        alert("🎉 Sucesso! Suas fotos e informações locais foram enviadas para o Supabase e agora estão sincronizadas em tempo real para todos os dispositivos!");
+      } catch (err) {
+        alert("Erro ao enviar dados para o Supabase: " + err.message);
+      } finally {
+        btnForcePush.disabled = false;
+        btnForcePush.textContent = "⬆️ Enviar Fotos e Dados Deste PC para a Nuvem";
+      }
+    });
+  }
+
+  const btnForcePull = document.getElementById('btn-force-pull-supabase');
+  if (btnForcePull) {
+    btnForcePull.addEventListener('click', async () => {
+      btnForcePull.disabled = true;
+      btnForcePull.textContent = "⏳ Buscando da nuvem...";
+      try {
+        const remoteData = await supabaseFetchState();
+        if (remoteData) {
+          if (remoteData.bookings && Array.isArray(remoteData.bookings)) {
+            remoteData.bookings.forEach(b => {
+              if (b.cpf) b.cpf = deobfuscateField(b.cpf);
+              if (b.phone) b.phone = deobfuscateField(b.phone);
+              if (b.email) b.email = deobfuscateField(b.email);
+            });
+          }
+          Object.assign(state, remoteData);
+          saveState(state);
+          renderPublicView();
+          renderAdminView();
+          alert("✓ Dados e fotos atualizados diretamente da nuvem com sucesso!");
+        } else {
+          alert("Aviso: Nenhum dado foi encontrado no Supabase ainda. Você pode usar o botão 'Enviar Dados' para enviar os dados deste PC.");
+        }
+      } catch (err) {
+        alert("Erro ao puxar dados do Supabase: " + err.message);
+      } finally {
+        btnForcePull.disabled = false;
+        btnForcePull.textContent = "⬇️ Puxar Dados Mais Recentes da Nuvem";
+      }
+    });
+  }
 
   // Admin: Backup Export (JSON Download)
   document.getElementById('btn-export-backup').addEventListener('click', () => {
